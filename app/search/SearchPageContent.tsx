@@ -592,7 +592,10 @@ export default function SearchPageContent() {
                       </div>
                     )}
 
-                    <div className="aspect-video bg-gray-100 rounded-t-xl overflow-hidden relative">
+<div 
+                      className="aspect-video bg-gray-100 rounded-t-xl overflow-hidden relative cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(product.productUrl, '_blank')}
+                    >
                       {/* 🔥 이미지 오류 처리 개선 */}
                       {product.imageUrl && product.imageUrl.trim() ? (
                         <Image

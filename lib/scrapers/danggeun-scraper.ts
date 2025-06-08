@@ -25,7 +25,7 @@ export class DanggeunScraper extends BaseScraper {
   sourceName = "danggeun";
   baseUrl = "https://www.daangn.com";
   searchPath = "/kr/buy-sell/";
-  region = "마장동-56"; // Default region
+  region = "용답동-70"; // Default region
 
   async searchProducts(query: string, limit: number = 20): Promise<Product[]> {
     const products: Product[] = [];
