@@ -2,7 +2,7 @@ import { BaseScraper } from "./base-scraper";
 import type { Product } from "@/types/product";
 import * as cheerio from "cheerio";
 import { browserManager } from "../browser-manager";
-import type { Page } from "puppeteer";
+import type { Page } from "puppeteer-core";
 
 async function autoScroll(page: Page) {
   await page.evaluate(async () => {
