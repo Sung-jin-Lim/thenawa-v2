@@ -36,16 +36,54 @@ export class DanggeunScraper extends BaseScraper {
       page = await browserManager.createPage();
 
       // 🔥 당근마켓 검색 URL (exact same as example)
+      const encodedQuery = encodeURIComponent(query);
       const url = `${this.baseUrl}${this.searchPath}?in=${encodeURIComponent(
         this.region
-      )}&search=${encodeURIComponent(query)}`;
+      )}&search=${encodedQuery}`;
       console.log(`🔍 당근마켓 검색: ${url}`);
 
       // Navigate to search page
-      await page.goto(url, { waitUntil: "networkidle2", timeout: 15000 });
+      await page.goto(url, {
+        waitUntil: "networkidle0",
+        timeout: 15000,
+      });
 
-      // Wait for search results (exact selector from example)
-      await page.waitForSelector('a[data-gtm="search_article"]', { timeout: 15000 });
+      // Wait for content to load with multiple selectors
+      const selectors = [
+        'div[class*="card"]',
+        'a[href*="/articles/"]',
+        'div[class*="item"]',
+        'div[class*="product"]',
+        "article",
+        ".card-item",
+        ".product-card",
+      ];
+
+      console.log(`🔍 당근마켓 선택자 대기 중...`);
+
+      // Try to wait for any of the selectors
+      let foundSelector = "";
+      for (const selector of selectors) {
+        try {
+          await page.waitForSelector(selector, { timeout: 3000 });
+          foundSelector = selector;
+          console.log(`✅ 당근마켓 선택자 발견: ${selector}`);
+          break;
+        } catch {
+          console.log(`⏰ 당근마켓 선택자 타임아웃: ${selector}`);
+        }
+      }
+
+      if (!foundSelector) {
+        console.log(`❌ 당근마켓: 모든 선택자 타임아웃`);
+
+        // Get page content for debugging
+        const html = await page.content();
+        console.log(`📄 당근마켓 HTML 길이: ${html.length}`);
+        console.log(`🔍 당근마켓 HTML 미리보기 (처음 500자): ${html.substring(0, 500)}`);
+
+        return [];
+      }
 
       // Scroll through the page to trigger lazy-load (from example)
       await autoScroll(page);

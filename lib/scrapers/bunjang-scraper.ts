@@ -40,14 +40,25 @@ export class BunjangScraper extends BaseScraper {
       const $ = cheerio.load(html);
 
       // Try multiple selectors to find products (more robust approach)
-      const selectors = ["a[data-pid]", 'a[href*="/product/"]', ".product-item", ".item-card"];
+      const selectors = [
+        "a[data-pid]",
+        'a[href*="/product/"]',
+        ".product-item",
+        ".item-card",
+        'a[href*="/products/"]',
+        'div[class*="product"]',
+        'div[class*="item"]',
+      ];
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let productCards: cheerio.Cheerio<any> | null = null;
       let usedSelector = "";
 
+      console.log(`🔍 번개장터 HTML 미리보기 (처음 500자): ${html.substring(0, 500)}`);
+
       for (const selector of selectors) {
         const cards = $(selector);
+        console.log(`🔍 번개장터 선택자 테스트: ${selector} → ${cards.length}개 요소`);
         if (cards.length > 0) {
           productCards = cards;
           usedSelector = selector;
@@ -58,6 +69,14 @@ export class BunjangScraper extends BaseScraper {
 
       if (!productCards || productCards.length === 0) {
         console.log(`❌ 번개장터: 상품 요소를 찾을 수 없음`);
+        console.log(`🔍 번개장터 페이지 모든 링크 (처음 10개):`);
+        $("a")
+          .slice(0, 10)
+          .each((i, el) => {
+            const href = $(el).attr("href");
+            const text = $(el).text().trim().substring(0, 50);
+            console.log(`  ${i}: ${href} - "${text}"`);
+          });
         return [];
       }
 
