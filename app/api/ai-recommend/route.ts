@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
     console.log(`🔑 API Key loaded: ${hasApiKey ? "YES" : "NO"}`);
     console.log(`🔑 API Key starts with: ${apiKey?.substring(0, 12)}...`);
     console.log(`🔑 API Key length: ${apiKey?.length}`);
-    console.log(`🔑 FULL API Key (for debugging): ${apiKey}`);
     console.log(
       `🔑 Full environment keys:`,
       Object.keys(process.env).filter((k) => k.includes("OPENROUTER"))

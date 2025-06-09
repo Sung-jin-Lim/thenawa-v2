@@ -34,3 +34,33 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Vercel Deployment
+
+### Environment Variables Required
+
+For production deployment on Vercel, set these environment variables:
+
+```
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+```
+
+### Vercel Configuration
+
+The project includes `vercel.json` with optimized settings for:
+
+- Function timeouts and memory allocation
+- Puppeteer configuration for web scraping
+- Regional deployment (Seoul)
+- API caching headers
+
+### Features Working in Production
+
+✅ **AI Product Recommendations** - Powered by OpenRouter API  
+✅ **Product Comparison** - AI-powered analysis in Korean  
+✅ **Multi-platform Search** - 당근마켓, 번개장터, 중고나라  
+✅ **Real-time Web Scraping** - Optimized for performance  
+✅ **Korean Language Support** - Full localization

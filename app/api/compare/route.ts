@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
           // Fallback to original product info with enhanced data
           detailedProducts.push({
             ...product,
+            source: product.source as "danggeun" | "bunjang" | "junggonara" | "coupang",
             description: product.title + " - " + product.source + "에서 판매 중인 상품입니다.",
             condition: "상품 상태 정보 없음",
             sellerName: "판매자",
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
         // Use original product info as fallback
         detailedProducts.push({
           ...product,
+          source: product.source as "danggeun" | "bunjang" | "junggonara" | "coupang",
           description: product.title + " - " + product.source + "에서 판매 중인 상품입니다.",
           condition: "상품 상태 정보 없음",
           sellerName: "판매자",
