@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔑 API Key loaded: ${hasApiKey ? "YES" : "NO"}`);
     console.log(`🔑 API Key starts with: ${apiKey?.substring(0, 12)}...`);
     console.log(`🔑 API Key length: ${apiKey?.length}`);
+    console.log(`🔑 FULL API Key (for debugging): ${apiKey}`);
     console.log(
       `🔑 Full environment keys:`,
       Object.keys(process.env).filter((k) => k.includes("OPENROUTER"))
@@ -107,15 +108,20 @@ ${selectedProducts
     // 🔥 OpenRouter API 호출
     console.log(`🚀 Making OpenRouter request to: https://openrouter.ai/api/v1/chat/completions`);
     console.log(`🚀 Model: meta-llama/llama-3.1-8b-instruct:free`);
+    console.log(`🔑 Auth header will be: Bearer ${apiKey?.substring(0, 20)}...`);
+
+    const headers = {
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://thenawa.vercel.app",
+      "X-Title": "TheNawa Product Search",
+      "Content-Type": "application/json",
+    };
+
+    console.log(`🔑 Headers being sent:`, Object.keys(headers));
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://thenawa.vercel.app",
-        "X-Title": "TheNawa Product Search",
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         model: "meta-llama/llama-3.1-8b-instruct:free",
         messages: [

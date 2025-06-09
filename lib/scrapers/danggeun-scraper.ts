@@ -25,7 +25,7 @@ export class DanggeunScraper extends BaseScraper {
   sourceName = "danggeun";
   baseUrl = "https://www.daangn.com";
   searchPath = "/kr/buy-sell/";
-  region = "용답동-70"; // Default region
+  region = "마장동-56"; // Default region
 
   async searchProducts(query: string, limit: number = 20): Promise<Product[]> {
     const products: Product[] = [];
@@ -78,10 +78,10 @@ export class DanggeunScraper extends BaseScraper {
           const price = parseInt(priceTxt.replace(/[^0-9]/g, ""), 10) || 0;
           const location = card.find("span.lm809sj").first().text().trim();
 
-          // Enhanced image extraction for Danggeun (exact from example)
+          // Enhanced image extraction for Danggeun
           let img = "";
 
-          // Try multiple selectors for images (from example)
+          // Try multiple selectors for images with better priority
           const imageSelectors = [
             'img[src*="daangn"]',
             'img[src*="karrot"]',
@@ -89,34 +89,45 @@ export class DanggeunScraper extends BaseScraper {
             'img[data-src*="daangn"]',
             'img[data-src*="karrot"]',
             'img[data-src*="gcp-karroter"]',
+            ".sc-s1isp7-5 img", // Common Danggeun image wrapper
+            ".sc-s1isp7-3 img", // Alternative wrapper
+            "img[src]", // Any image with src
+            "img[data-src]", // Any image with data-src
             "img", // fallback
           ];
 
           for (const selector of imageSelectors) {
             const imgEl = card.find(selector).first();
             if (imgEl.length) {
-              img = imgEl.attr("src") || imgEl.attr("data-src") || "";
-              if (
-                img &&
-                (img.includes("daangn") ||
-                  img.includes("karrot") ||
-                  img.includes("gcp-karroter")) &&
-                !img.includes("avatar") &&
-                !img.includes("icon") &&
-                !img.includes("logo") &&
-                !img.includes("profile")
-              ) {
-                break;
-              }
-            }
-          }
+              let imgSrc = imgEl.attr("src") || imgEl.attr("data-src") || "";
 
-          // Clean up image URL (from example)
-          if (img) {
-            if (img.startsWith("//")) {
-              img = "https:" + img;
-            } else if (img.startsWith("/")) {
-              img = "https://www.daangn.com" + img;
+              // If we found an image source
+              if (imgSrc) {
+                // Clean up the URL
+                if (imgSrc.startsWith("//")) {
+                  imgSrc = "https:" + imgSrc;
+                } else if (imgSrc.startsWith("/")) {
+                  imgSrc = "https://www.daangn.com" + imgSrc;
+                }
+
+                // Check if it's a valid product image (not avatar/icon/logo)
+                const isValidImage =
+                  !imgSrc.includes("avatar") &&
+                  !imgSrc.includes("icon") &&
+                  !imgSrc.includes("logo") &&
+                  !imgSrc.includes("profile") &&
+                  !imgSrc.includes("placeholder") &&
+                  imgSrc.length > 10 && // Not too short
+                  (imgSrc.includes("daangn") ||
+                    imgSrc.includes("karrot") ||
+                    imgSrc.includes("gcp-karroter") ||
+                    imgSrc.match(/\.(jpg|jpeg|png|webp)/i)); // Has image extension
+
+                if (isValidImage) {
+                  img = imgSrc;
+                  break;
+                }
+              }
             }
           }
 

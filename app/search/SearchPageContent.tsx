@@ -65,67 +65,35 @@ const searchProducts = async (
   minPrice: number,
   maxPrice: number
 ): Promise<SearchResponse> => {
-  // Create AbortController for timeout handling
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
-
-  try {
-    const response = await fetch("/api/search", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query,
-        sources,
-        limit: 20,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "검색 중 오류가 발생했습니다.");
-    }
-
-    const data = await response.json();
-    console.log("🔍 Search API Response:", {
+  const response = await fetch("/api/search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
       query,
       sources,
-      totalProducts: data.products?.length || 0,
-      executionTime: data.executionTime,
-      sourceBreakdown:
-        data.products?.reduce((acc: Record<string, number>, p: Product) => {
-          acc[p.source] = (acc[p.source] || 0) + 1;
-          return acc;
-        }, {}) || {},
-    });
+      limit: 20,
+    }),
+  });
 
-    // 가격 필터링 (API에서 처리하지 않으므로 클라이언트에서 처리)
-    const filteredProducts = data.products.filter(
-      (product: Product) => product.price >= minPrice && product.price <= maxPrice
-    );
-
-    console.log("🔍 After price filtering:", {
-      originalCount: data.products?.length || 0,
-      filteredCount: filteredProducts.length,
-      priceRange: [minPrice, maxPrice],
-    });
-
-    return {
-      ...data,
-      products: filteredProducts,
-      count: filteredProducts.length,
-    };
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("검색 시간이 초과되었습니다. 다시 시도해주세요.");
-    }
-    throw error;
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "검색 중 오류가 발생했습니다.");
   }
+
+  const data = await response.json();
+
+  // 가격 필터링 (API에서 처리하지 않으므로 클라이언트에서 처리)
+  const filteredProducts = data.products.filter(
+    (product: Product) => product.price >= minPrice && product.price <= maxPrice
+  );
+
+  return {
+    ...data,
+    products: filteredProducts,
+    count: filteredProducts.length,
+  };
 };
 
 // 🤖 AI 추천 API 호출 함수
@@ -592,10 +560,7 @@ export default function SearchPageContent() {
                       </div>
                     )}
 
-<div 
-                      className="aspect-video bg-gray-100 rounded-t-xl overflow-hidden relative cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => window.open(product.productUrl, '_blank')}
-                    >
+                    <div className="aspect-video bg-gray-100 rounded-t-xl overflow-hidden relative">
                       {/* 🔥 이미지 오류 처리 개선 */}
                       {product.imageUrl && product.imageUrl.trim() ? (
                         <Image
