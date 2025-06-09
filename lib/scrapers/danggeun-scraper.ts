@@ -48,24 +48,18 @@ export class DanggeunScraper extends BaseScraper {
         timeout: 15000,
       });
 
-      // Wait for content to load with multiple selectors
-      const selectors = [
-        'div[class*="card"]',
-        'a[href*="/articles/"]',
-        'div[class*="item"]',
-        'div[class*="product"]',
-        "article",
-        ".card-item",
-        ".product-card",
-      ];
-
       console.log(`🔍 당근마켓 선택자 대기 중...`);
 
-      // Try to wait for any of the selectors
+      // Wait for any content to load - reduced wait time
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Try both selectors quickly
+      const selectors = ['a[data-gtm="search_article"]', 'a[href*="/kr/buy-sell/"]'];
       let foundSelector = "";
+
       for (const selector of selectors) {
         try {
-          await page.waitForSelector(selector, { timeout: 3000 });
+          await page.waitForSelector(selector, { timeout: 1500 });
           foundSelector = selector;
           console.log(`✅ 당근마켓 선택자 발견: ${selector}`);
           break;
@@ -75,14 +69,9 @@ export class DanggeunScraper extends BaseScraper {
       }
 
       if (!foundSelector) {
-        console.log(`❌ 당근마켓: 모든 선택자 타임아웃`);
-
-        // Get page content for debugging
-        const html = await page.content();
-        console.log(`📄 당근마켓 HTML 길이: ${html.length}`);
-        console.log(`🔍 당근마켓 HTML 미리보기 (처음 500자): ${html.substring(0, 500)}`);
-
-        return [];
+        // Don't give up immediately - continue to parsing
+        console.log(`⚠️ 당근마켓: 선택자 대기 실패, 파싱 강행`);
+        foundSelector = "FALLBACK";
       }
 
       // Scroll through the page to trigger lazy-load (from example)
@@ -97,80 +86,160 @@ export class DanggeunScraper extends BaseScraper {
 
       const $ = cheerio.load(html);
 
-      // Use exact selector from example
-      const articleElements = $('a[data-gtm="search_article"]');
-      console.log(`🎯 당근마켓 상품 요소 발견: ${articleElements.length}개`);
+      // Try multiple selectors for finding products (prioritize the working one)
+      const productSelectors = [
+        'a[data-gtm="search_article"]', // ⭐ This WORKS when found - prioritize it!
+        'a[href*="/kr/buy-sell/"]', // Alternative approach
+        'a[href*="/articles/"]', // Fallback
+        'div[class*="article"]', // Container fallback
+      ];
 
-      if (articleElements.length === 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let articleElements: cheerio.Cheerio<any> | null = null;
+      let usedSelector = "";
+
+      for (const selector of productSelectors) {
+        const elements = $(selector);
+        console.log(`🔍 당근마켓 선택자 테스트: ${selector} → ${elements.length}개 요소`);
+        if (elements.length > 0) {
+          articleElements = elements;
+          usedSelector = selector;
+          console.log(`✅ 당근마켓 선택자 성공: ${selector} (${elements.length}개 요소)`);
+          break;
+        }
+      }
+
+      if (!articleElements || articleElements.length === 0) {
         console.log(`❌ 당근마켓: 상품 요소를 찾을 수 없음`);
+        console.log(`🔍 당근마켓 페이지 모든 링크 (처음 10개):`);
+        $("a")
+          .slice(0, 10)
+          .each((i, el) => {
+            const href = $(el).attr("href");
+            const text = $(el).text().trim().substring(0, 50);
+            const dataGtm = $(el).attr("data-gtm");
+            console.log(`  ${i}: ${href} - "${text}" (data-gtm: ${dataGtm})`);
+          });
         return [];
       }
+
+      console.log(
+        `🎯 당근마켓 상품 요소 발견: ${articleElements.length}개 (선택자: ${usedSelector})`
+      );
 
       articleElements.slice(0, limit).each((index, element) => {
         try {
           const card = $(element);
+          let title = "";
+          let priceTxt = "";
+          let location = "당근마켓";
 
-          // Extract data using exact selectors from example
-          const title = card.find("span.lm809sh").text().trim();
-          const priceTxt = card.find("span.lm809si").text().trim();
-          const price = parseInt(priceTxt.replace(/[^0-9]/g, ""), 10) || 0;
-          const location = card.find("span.lm809sj").first().text().trim();
+          // Use different parsing logic based on the selector used
+          if (usedSelector === 'a[data-gtm="search_article"]') {
+            // Original working parsing logic for data-gtm selector
+            title = card.find("span").first().text().trim(); // Try first span for title
+            if (!title) {
+              title = card.text().split("\n")[0].trim(); // Fallback to first line
+            }
 
-          // Enhanced image extraction for Danggeun
-          let img = "";
+            // Look for price in spans or text
+            const spans = card.find("span");
+            spans.each((i, span) => {
+              const spanText = $(span).text().trim();
+              if (/\d+[,.]?\d*원/.test(spanText)) {
+                priceTxt = spanText;
+                return false; // Break from each loop
+              }
+            });
 
-          // Try multiple selectors for images with better priority
-          const imageSelectors = [
-            'img[src*="daangn"]',
-            'img[src*="karrot"]',
-            'img[src*="gcp-karroter"]',
-            'img[data-src*="daangn"]',
-            'img[data-src*="karrot"]',
-            'img[data-src*="gcp-karroter"]',
-            ".sc-s1isp7-5 img", // Common Danggeun image wrapper
-            ".sc-s1isp7-3 img", // Alternative wrapper
-            "img[src]", // Any image with src
-            "img[data-src]", // Any image with data-src
-            "img", // fallback
-          ];
+            // Look for location
+            spans.each((i, span) => {
+              const spanText = $(span).text().trim();
+              if (
+                spanText &&
+                spanText !== title &&
+                spanText !== priceTxt &&
+                !spanText.includes("·")
+              ) {
+                location = spanText;
+                return false;
+              }
+            });
+          } else {
+            // Alternative parsing for href-based selectors
+            const fullText = card.text().trim();
 
-          for (const selector of imageSelectors) {
-            const imgEl = card.find(selector).first();
-            if (imgEl.length) {
-              let imgSrc = imgEl.attr("src") || imgEl.attr("data-src") || "";
+            // Split by common separators and try to extract info
+            const parts = fullText.split(/[\n\r]+/).filter((part) => part.trim());
 
-              // If we found an image source
-              if (imgSrc) {
-                // Clean up the URL
-                if (imgSrc.startsWith("//")) {
-                  imgSrc = "https:" + imgSrc;
-                } else if (imgSrc.startsWith("/")) {
-                  imgSrc = "https://www.daangn.com" + imgSrc;
-                }
+            if (parts.length >= 2) {
+              title = parts[0].trim(); // First part is usually the title
+              priceTxt = parts[1].trim(); // Second part is usually the price
 
-                // Check if it's a valid product image (not avatar/icon/logo)
-                const isValidImage =
-                  !imgSrc.includes("avatar") &&
-                  !imgSrc.includes("icon") &&
-                  !imgSrc.includes("logo") &&
-                  !imgSrc.includes("profile") &&
-                  !imgSrc.includes("placeholder") &&
-                  imgSrc.length > 10 && // Not too short
-                  (imgSrc.includes("daangn") ||
-                    imgSrc.includes("karrot") ||
-                    imgSrc.includes("gcp-karroter") ||
-                    imgSrc.match(/\.(jpg|jpeg|png|webp)/i)); // Has image extension
-
-                if (isValidImage) {
-                  img = imgSrc;
+              // Look for location in the remaining parts
+              for (let i = 2; i < parts.length; i++) {
+                const part = parts[i].trim();
+                if (part && !part.includes("·") && !part.includes("전") && !part.includes("끌올")) {
+                  location = part;
                   break;
                 }
+              }
+            } else {
+              // Fallback: try to extract from the full text
+              title = fullText.replace(/\d+[,.]?\d*원?|\d+[,.]?\d*만원?|마장동|·.*$/g, "").trim();
+              const priceMatch = fullText.match(/(\d+[,.]?\d*(?:원|만원)?)/);
+              if (priceMatch) {
+                priceTxt = priceMatch[1];
               }
             }
           }
 
-          const relUrl = card.attr("href");
-          const productUrl = this.baseUrl + relUrl;
+          // Clean up title
+          if (title.length > 100) {
+            title = title.substring(0, 100).trim();
+          }
+
+          // Extract price number
+          const price = parseInt(priceTxt.replace(/[^0-9]/g, ""), 10) || 0;
+
+          // Extract image from the link
+          let img = "";
+          const imgEl = card.find("img").first();
+          if (imgEl.length) {
+            let imgSrc = imgEl.attr("src") || imgEl.attr("data-src") || "";
+
+            if (imgSrc) {
+              // Clean up the URL
+              if (imgSrc.startsWith("//")) {
+                imgSrc = "https:" + imgSrc;
+              } else if (imgSrc.startsWith("/")) {
+                imgSrc = "https://www.daangn.com" + imgSrc;
+              }
+
+              // Danggeun images are usually valid if they exist
+              if (imgSrc.length > 10 && !imgSrc.includes("placeholder")) {
+                img = imgSrc;
+              }
+            }
+          }
+
+          let relUrl = card.attr("href");
+          if (!relUrl && usedSelector.includes("a")) {
+            // If we're not on an anchor tag, try to find one inside
+            const linkEl = card.find("a").first();
+            relUrl = linkEl.attr("href");
+          }
+
+          let productUrl = "";
+          if (relUrl) {
+            if (relUrl.startsWith("http")) {
+              productUrl = relUrl; // Already full URL
+            } else if (relUrl.startsWith("/")) {
+              productUrl = this.baseUrl + relUrl; // Relative URL
+            } else {
+              productUrl = this.baseUrl + "/" + relUrl; // Path without leading slash
+            }
+          }
 
           // Only add if we have title and URL (from example logic)
           if (title && productUrl) {
