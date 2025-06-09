@@ -14,9 +14,13 @@ let globalBrowser: Browser | null = null;
 async function getBrowser(): Promise<Browser> {
   if (globalBrowser) return globalBrowser;
 
-  const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV;
+  const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV || process.env.VERCEL;
+  console.log(
+    `🔧 Environment check - VERCEL: ${process.env.VERCEL}, VERCEL_ENV: ${process.env.VERCEL_ENV}, isVercel: ${isVercel}`
+  );
 
   if (isVercel) {
+    console.log(`🚀 Using @sparticuz/chromium-min for Vercel environment`);
     globalBrowser = await puppeteer.launch({
       args: [
         ...chromium.args,
@@ -41,7 +45,9 @@ async function getBrowser(): Promise<Browser> {
       executablePath: await chromium.executablePath(remoteExecutablePath),
       headless: true,
     });
+    console.log(`✅ Vercel browser launched with @sparticuz/chromium-min`);
   } else {
+    console.log(`🚀 Using local Chrome for development environment`);
     // 🔥 로컬 환경: Chrome 경로 찾기 로직 복원
     const possiblePaths = [
       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -67,6 +73,7 @@ async function getBrowser(): Promise<Browser> {
     // Chrome을 찾지 못하면 chromium 사용
     if (!executablePath) {
       try {
+        console.log(`🚀 Local Chrome not found, using @sparticuz/chromium-min fallback`);
         executablePath = await chromium.executablePath(remoteExecutablePath);
       } catch (error) {
         console.error("Chrome 또는 Chromium을 찾을 수 없습니다:", error);
