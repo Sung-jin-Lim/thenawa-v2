@@ -128,8 +128,13 @@ export class DanggeunScraper extends BaseScraper {
         `🎯 당근마켓 상품 요소 발견: ${articleElements.length}개 (선택자: ${usedSelector})`
       );
 
-      articleElements.slice(0, limit).each((index, element) => {
+      // 🔥 Optimize: Convert to array and use faster for loop instead of jQuery each
+      const elementsArray = articleElements.slice(0, limit).toArray();
+      console.log(`⚡ 당근마켓 요소 배열 변환 완료: ${elementsArray.length}개`);
+
+      for (let index = 0; index < elementsArray.length; index++) {
         try {
+          const element = elementsArray[index];
           const card = $(element);
           let title = "";
           let priceTxt = "";
@@ -259,13 +264,21 @@ export class DanggeunScraper extends BaseScraper {
 
             products.push(product);
             console.log(
-              `✅ 당근마켓 상품 추가: ${title} - ${priceTxt} (이미지: ${img ? "있음" : "없음"})`
+              `✅ 당근마켓 상품 추가 [${index}]: ${title} - ${priceTxt} (이미지: ${
+                img ? "있음" : "없음"
+              })`
             );
+
+            // 🔥 Early exit if we have enough products to prevent timeout
+            if (products.length >= limit) {
+              console.log(`⚡ 당근마켓 조기 종료: ${products.length}개 수집 완료`);
+              break;
+            }
           }
         } catch (error) {
           console.error(`❌ 당근마켓 상품 파싱 오류:`, error);
         }
-      });
+      }
 
       console.log(`🎯 당근마켓 최종 결과: ${products.length}개 상품`);
       return products.slice(0, limit);
