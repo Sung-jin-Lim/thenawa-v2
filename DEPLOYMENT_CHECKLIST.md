@@ -16,7 +16,7 @@
 Set these in Vercel Dashboard → Project Settings → Environment Variables:
 
 ```
-OPENROUTER_API_KEY = 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
+OPENROUTER_API_KEY = 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
 NEXT_PUBLIC_APP_URL = https://your-app.vercel.app
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = true
 PUPPETEER_EXECUTABLE_PATH = /usr/bin/google-chrome-stable

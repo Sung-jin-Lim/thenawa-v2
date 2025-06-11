@@ -39,7 +39,7 @@ async function runScraperWithTimeout(
   return new Promise(async (resolve) => {
     // 타임아웃 설정
     const timeout = setTimeout(() => {
-      console.log(`⏰ ${scraperName} 타임아웃 (${timeoutMs}ms)`);
+      console.log(`⏰ ${scraperName} 타임아웃 (${timeoutMs}ms) - 빈 배열 반환`);
       resolve([]);
     }, timeoutMs);
 
@@ -106,11 +106,19 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
     });
 
     const batchResults = await Promise.all(batchPromises);
-    batchResults.forEach((results) => allProducts.push(...results));
+
+    // 🔥 개선된 결과 수집 및 로깅
+    batchResults.forEach((results, index) => {
+      const source = batch[index];
+      console.log(`📦 ${source} 결과 수집: ${results.length}개 상품`);
+      allProducts.push(...results);
+    });
 
     // 🔥 Strategy 3: 조기 종료 완화 - 모든 플랫폼이 완료되도록
     console.log(
-      `📊 배치 ${i / SCRAPER_CONFIG.PARALLEL_LIMIT + 1} 완료: ${allProducts.length}개 결과`
+      `📊 배치 ${i / SCRAPER_CONFIG.PARALLEL_LIMIT + 1} 완료: ${
+        allProducts.length
+      }개 결과 (${batch.join(", ")})`
     );
     // 조기 종료 로직 제거하여 모든 플랫폼이 실행되도록 함
   }
@@ -145,6 +153,18 @@ export async function POST(request: NextRequest) {
 
     clearTimeout(globalTimeout);
 
+    // 🔥 스크래핑 결과 상세 로깅
+    const sourceBreakdown = products.reduce((acc, product) => {
+      acc[product.source] = (acc[product.source] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    console.log(`🔍 스크래핑 결과 상세:`, {
+      총상품수: products.length,
+      소스별분포: sourceBreakdown,
+      요청된소스: sources,
+    });
+
     // 🔥 빠른 중복 제거 (간단한 URL 기반)
     const uniqueProducts = products
       .filter(
@@ -154,8 +174,19 @@ export async function POST(request: NextRequest) {
       .sort((a, b) => a.price - b.price)
       .slice(0, limit);
 
+    // 🔥 최종 결과 검증 로깅
+    const finalSourceBreakdown = uniqueProducts.reduce((acc, product) => {
+      acc[product.source] = (acc[product.source] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
     const executionTime = Date.now() - startTime;
     console.log(`⚡ 최적화된 검색 완료: ${uniqueProducts.length}개 상품, ${executionTime}ms 소요`);
+    console.log(`📊 최종 응답 데이터:`, {
+      총상품수: uniqueProducts.length,
+      소스별분포: finalSourceBreakdown,
+      중복제거전: products.length,
+    });
 
     const response: SearchResponse = {
       query,
