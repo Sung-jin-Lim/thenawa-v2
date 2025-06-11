@@ -6,19 +6,22 @@ import { BaseScraper } from "@/lib/scrapers/base-scraper";
 import { SearchRequest, SearchResponse, Product } from "@/types/product";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 40; // 🔥 40초로 증가 (Vercel 환경 대응)
+export const maxDuration = 45; // 🔥 45초로 증가 (새로운 타임아웃 대응)
 
 // 🔧 타입 정의
 type ScraperConstructor = new () => BaseScraper;
 
-// 🔥 환경별 타임아웃 설정 (Vercel 제약 고려하여 더 관대하게)
+// 🔥 환경별 타임아웃 설정 (Vercel 서버리스 제약 대응)
 const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV;
 const SCRAPER_CONFIG = {
-  INDIVIDUAL_TIMEOUT: isVercel ? 18000 : 8000, // Vercel: 18초, Local: 8초
-  DANGGEUN_TIMEOUT: isVercel ? 25000 : 15000, // Danggeun은 더 길게 (Vercel: 25초, Local: 15초)
-  TOTAL_TIMEOUT: isVercel ? 35000 : 25000, // 전체 타임아웃 (Vercel: 35초, Local: 25초)
-  MIN_RESULTS: 15, // 🔥 15개로 증가 (조기 종료 방지)
-  PARALLEL_LIMIT: 2, // 동시 실행 개수 제한
+  INDIVIDUAL_TIMEOUT: isVercel ? 28000 : 8000, // Vercel: 28초 (대폭 증가), Local: 8초
+  DANGGEUN_TIMEOUT: isVercel ? 35000 : 15000, // Danggeun (Vercel: 35초), Local: 15초
+  TOTAL_TIMEOUT: isVercel ? 38000 : 25000, // 전체 타임아웃 (Vercel: 38초), Local: 25초
+  MIN_RESULTS: 6, // 🔥 최소 6개 (중고나라만으로도 충분)
+  PARALLEL_LIMIT: isVercel ? 3 : 2, // Vercel에서는 모든 플랫폼 동시 시도
+  // 🔥 Vercel 최적화 플래그
+  VERCEL_FAST_MODE: isVercel, // Vercel에서 빠른 실패 허용
+  GRACEFUL_DEGRADATION: isVercel, // 부분 성공도 OK
 } as const;
 
 console.log(
@@ -80,20 +83,20 @@ async function runScraperWithTimeout(
   });
 }
 
-// 🔥 핵심 최적화 3: 제한된 병렬 처리 (Vercel 리소스 고려)
+// 🔥 핵심 최적화 3: Vercel 적응형 병렬 처리
 async function runScrapersOptimized(query: string, sources: string[]): Promise<Product[]> {
   const allProducts: Product[] = [];
   const limitPerSource = 7; // 🔥 각 플랫폼당 고정 7개씩
 
-  // 🔥 Strategy 1: 빠른 플랫폼 우선 (번개장터가 보통 가장 빠름)
+  // 🔥 Strategy 1: 중고나라 우선 (Vercel에서 가장 안정적)
   const prioritizedSources = sources.sort((a, b) => {
-    const priority = { bunjang: 1, junggonara: 2, danggeun: 3 };
+    const priority = { junggonara: 1, bunjang: 2, danggeun: 3 }; // 중고나라 최우선
     return (
       (priority[a as keyof typeof priority] || 99) - (priority[b as keyof typeof priority] || 99)
     );
   });
 
-  // 🔥 Strategy 2: 모든 소스를 한 번에 병렬 처리 (중복 실행 방지)
+  // 🔥 Strategy 2: Vercel 최적화된 병렬 처리
   const batchPromises = prioritizedSources.map((source) => {
     switch (source) {
       case "danggeun":
@@ -119,14 +122,41 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
           limitPerSource,
           SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT,
           "중고나라"
-        ); // 중고나라
+        ); // 중고나라 (가장 안정적)
       default:
         return Promise.resolve([]);
     }
   });
 
-  const batchResults = await Promise.all(batchPromises);
+  // 🔥 Strategy 3: Vercel 조기 성공 감지
+  if (SCRAPER_CONFIG.VERCEL_FAST_MODE) {
+    console.log("🚀 Vercel 고속 모드: 첫 번째 성공 시 조기 응답 고려");
 
+    // 중고나라가 성공하면 다른 결과를 기다리지만, 전체 타임아웃 단축
+    const raceTimeout = new Promise<Product[][]>((resolve) => {
+      setTimeout(() => {
+        console.log("⚡ Vercel 고속 모드: 부분 결과로 응답");
+        resolve([]); // 빈 배열로 race 종료, Promise.all이 완료될 때까지 기다림
+      }, SCRAPER_CONFIG.TOTAL_TIMEOUT - 3000); // 전체보다 3초 일찍
+    });
+
+    const results = await Promise.race([Promise.all(batchPromises), raceTimeout]);
+
+    const batchResults =
+      Array.isArray(results) && results.length > 0 ? results : await Promise.all(batchPromises);
+    return processResults(batchResults, prioritizedSources, allProducts);
+  }
+
+  const batchResults = await Promise.all(batchPromises);
+  return processResults(batchResults, prioritizedSources, allProducts);
+}
+
+// 🔥 결과 처리 함수 분리
+function processResults(
+  batchResults: Product[][],
+  prioritizedSources: string[],
+  allProducts: Product[]
+): Product[] {
   // 🔥 개선된 결과 수집 및 로깅
   batchResults.forEach((results, index) => {
     const source = prioritizedSources[index];
@@ -144,7 +174,19 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
 
   console.log(`📊 전체 배치 완료: ${allProducts.length}개 결과 (${prioritizedSources.join(", ")})`);
 
-  // Strategy 3: All platforms execute once - no early termination
+  // 🔥 Vercel 부분 성공 허용 로직
+  if (SCRAPER_CONFIG.GRACEFUL_DEGRADATION && allProducts.length >= SCRAPER_CONFIG.MIN_RESULTS) {
+    console.log(
+      `✅ Vercel 부분 성공: ${allProducts.length}개 상품 확보 (최소 ${SCRAPER_CONFIG.MIN_RESULTS}개 충족)`
+    );
+  } else if (
+    SCRAPER_CONFIG.GRACEFUL_DEGRADATION &&
+    allProducts.length < SCRAPER_CONFIG.MIN_RESULTS
+  ) {
+    console.log(
+      `⚠️ Vercel 부분 실패: ${allProducts.length}개 상품만 확보 (최소 ${SCRAPER_CONFIG.MIN_RESULTS}개 미달)`
+    );
+  }
 
   return allProducts;
 }

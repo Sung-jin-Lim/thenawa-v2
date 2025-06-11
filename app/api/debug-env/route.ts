@@ -8,11 +8,13 @@ export async function GET() {
 
   // Scraper configuration (mirrored from search route)
   const SCRAPER_CONFIG = {
-    INDIVIDUAL_TIMEOUT: isVercel ? 18000 : 8000,
-    DANGGEUN_TIMEOUT: isVercel ? 25000 : 15000,
-    TOTAL_TIMEOUT: isVercel ? 35000 : 25000,
-    MIN_RESULTS: 15,
-    PARALLEL_LIMIT: 2,
+    INDIVIDUAL_TIMEOUT: isVercel ? 28000 : 8000, // 대폭 증가
+    DANGGEUN_TIMEOUT: isVercel ? 35000 : 15000,
+    TOTAL_TIMEOUT: isVercel ? 38000 : 25000,
+    MIN_RESULTS: 6, // 중고나라만으로도 충분
+    PARALLEL_LIMIT: isVercel ? 3 : 2,
+    VERCEL_FAST_MODE: isVercel,
+    GRACEFUL_DEGRADATION: isVercel,
   };
 
   const debugInfo = {
