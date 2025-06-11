@@ -17,13 +17,16 @@ interface DynamicLoaderProps {
   title?: string;
   subtitle?: string;
   showProgress?: boolean;
+  completed?: boolean; // Add prop to complete progress to 100%
 }
 
 const loadingSteps = {
   search: [
     { icon: Search, text: "검색 요청 처리 중...", duration: 2000 },
-    { icon: Package, text: "상품 데이터 수집 중...", duration: 3000 },
-    { icon: TrendingUp, text: "결과 정렬 중...", duration: 1500 },
+    { icon: Package, text: "번개장터 상품 수집 중...", duration: 4000 },
+    { icon: Package, text: "중고나라 상품 수집 중...", duration: 4000 },
+    { icon: Package, text: "당근마켓 상품 수집 중...", duration: 4000 },
+    { icon: TrendingUp, text: "결과 정렬 및 정리 중...", duration: 2000 },
     { icon: CheckCircle, text: "검색 완료!", duration: 500 },
   ],
   "ai-analysis": [
@@ -50,6 +53,7 @@ export default function DynamicLoader({
   title,
   subtitle,
   showProgress = true,
+  completed = false,
 }: DynamicLoaderProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -66,8 +70,19 @@ export default function DynamicLoader({
 
     const interval = setInterval(() => {
       currentTime += 100;
-      const newProgress = Math.min((currentTime / totalTime) * 100, 95); // Cap at 95% until completion
 
+      // More realistic progress calculation - slower at the end
+      let baseProgress = (currentTime / totalTime) * 100;
+
+      // Apply easing function to slow down progress near the end
+      if (baseProgress > 80) {
+        // Slow down significantly after 80%
+        const remainingProgress = baseProgress - 80;
+        const easedRemaining = remainingProgress * 0.6; // 60% speed after 80%
+        baseProgress = 80 + easedRemaining;
+      }
+
+      const newProgress = Math.min(baseProgress, completed ? 100 : 95); // Complete to 100% if operation finished
       setProgress(newProgress);
 
       // Update current step based on elapsed time
@@ -82,7 +97,15 @@ export default function DynamicLoader({
     }, 100);
 
     return () => clearInterval(interval);
-  }, [showProgress, steps]);
+  }, [showProgress, steps, completed]);
+
+  // Handle completion
+  useEffect(() => {
+    if (completed) {
+      setProgress(100);
+      setCurrentStep(steps.length - 1); // Jump to final step
+    }
+  }, [completed, steps.length]);
 
   const currentStepData = steps[currentStep];
   const IconComponent = currentStepData?.icon || Clock;
