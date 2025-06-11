@@ -29,6 +29,7 @@ import {
   Zap,
   Star,
 } from "lucide-react";
+import DynamicLoader from "@/components/ui/dynamic-loader";
 import { formatPrice, getSourceName, getSourceColor } from "@/lib/utils";
 
 // Product 타입 정의 (검색 페이지용, id로 변경)
@@ -392,10 +393,12 @@ export default function SearchPageContent() {
                 {showAIRecommendations && (
                   <CardContent>
                     {aiLoading ? (
-                      <div className="flex items-center gap-3 text-amber-600">
-                        <Brain className="w-5 h-5 animate-pulse" />
-                        <span>AI가 상품을 분석 중입니다...</span>
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                      <div className="py-4">
+                        <DynamicLoader
+                          type="ai-analysis"
+                          showProgress={true}
+                          subtitle="상품을 분석하여 최적의 추천을 찾고 있습니다."
+                        />
                       </div>
                     ) : aiError ? (
                       <div className="text-red-600 flex items-center gap-2">
@@ -512,11 +515,7 @@ export default function SearchPageContent() {
 
         {/* 검색 결과 */}
         {loading ? (
-          <div className="text-center py-12">
-            <Loader2 className="w-12 h-12 animate-spin text-brand-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold">검색 중입니다...</h3>
-            <p className="text-gray-600 mt-2">잠시만 기다려주세요...</p>
-          </div>
+          <DynamicLoader type="search" subtitle="검색 조건에 맞는 상품을 찾고 있습니다." />
         ) : error ? (
           <Card className="rounded-xl border-red-200">
             <CardContent className="p-6 text-center">

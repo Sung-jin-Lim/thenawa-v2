@@ -20,6 +20,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
+import DynamicLoader from "@/components/ui/dynamic-loader";
 import { getSourceName, getSourceColor } from "@/lib/utils";
 
 // Updated type definitions
@@ -200,14 +201,11 @@ export default function ComparisonPageContent() {
 
   if (loading) {
     return (
-      <div className="container mx-auto max-w-6xl px-4 py-12 text-center">
-        <Loader2 className="w-12 h-12 animate-spin text-brand-500 mx-auto mb-4" />
-        <div className="space-y-2">
-          <p className="text-lg font-medium">제품을 비교 분석하는 중...</p>
-          <p className="text-sm text-gray-500">
-            상품 상세 정보를 수집하고 AI 분석을 진행하고 있습니다.
-          </p>
-        </div>
+      <div className="container mx-auto max-w-6xl px-4 py-12">
+        <DynamicLoader
+          type="comparison"
+          subtitle="상품 상세 정보를 수집하고 AI 분석을 진행하고 있습니다."
+        />
       </div>
     );
   }

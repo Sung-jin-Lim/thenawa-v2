@@ -1,12 +1,12 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Table,
   TableBody,
@@ -14,8 +14,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { 
+} from "@/components/ui/table";
+import {
   ArrowLeft,
   ArrowUpDown,
   MapPin,
@@ -23,166 +23,166 @@ import {
   Tag,
   ShoppingCart,
   Loader2,
-  TrendingDown
-} from "lucide-react"
-import { formatPrice, getSourceName, getSourceColor } from "@/lib/utils"
+  TrendingDown,
+} from "lucide-react";
+import DynamicLoader from "@/components/ui/dynamic-loader";
+import { formatPrice, getSourceName, getSourceColor } from "@/lib/utils";
 
 interface Product {
-    id: string
-    title: string
-    price: number
-    priceText: string
-    source: string
-    imageUrl: string
-    productUrl: string
-    location?: string
-    description?: string
-    condition?: string
-    sellerName?: string
-    images?: string[]
-    specs?: Record<string, string>
-    timestamp?: string
-  }
-  
-  interface MarketProduct {
-    id: string
-    title: string
-    price: number
-    priceText: string
-    source: string
-    imageUrl: string
-    productUrl: string
-  }
-  
-  interface MarketAnalysis {
-    marketPrice: number
-    disparity: number
-    disparityPercentage: number
-    marketProducts: MarketProduct[]
-  }
-  
-  interface ProductDetailResponse {
-    product: Product
-    similarProducts: Product[]
-    marketAnalysis: MarketAnalysis
-  }
-  
-  interface ProductDetailProps {
-    params: Promise<{
-      id: string
-    }>
-  }
-  
-  // Mock API function
-  const getProductDetails = async (id: string): Promise<ProductDetailResponse> => {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    const mockProduct: Product = {
-      id: id,
-      title: "아이폰 14 Pro 128GB 딥퍼플",
-      price: 920000,
-      priceText: "920,000원",
-      source: "danggeun",
-      imageUrl: "/api/placeholder/400/300",
-      productUrl: "https://example.com/1",
-      location: "용답동",
-      description: "아이폰 14 Pro 128GB 딥퍼플 색상입니다. 케이스와 함께 사용해서 상태 양호합니다.",
-      condition: "상급",
-      sellerName: "김**",
-      images: ["/api/placeholder/400/300", "/api/placeholder/400/300"],
-      specs: {
-        "모델명": "iPhone 14 Pro",
-        "용량": "128GB", 
-        "색상": "딥퍼플",
-        "출시년도": "2022년"
-      },
-      timestamp: new Date().toISOString()
-    }
-    
-    const similarProducts: Product[] = [
-      {
-        id: "2",
-        title: "아이폰 14 Pro 256GB 스페이스블랙",
-        price: 1050000,
-        priceText: "1,050,000원",
-        source: "bunjang",
-        imageUrl: "/api/placeholder/400/300",
-        productUrl: "https://example.com/2", // 누락된 productUrl 추가
-        location: "성수동"
-      }
-    ]
-    
-    const marketAnalysis: MarketAnalysis = {
-      marketPrice: 1200000,
-      disparity: 280000,
-      disparityPercentage: 23.3,
-      marketProducts: [
-        {
-          id: "market1",
-          title: "아이폰 14 Pro 128GB (쿠팡)",
-          price: 1200000,
-          priceText: "1,200,000원",
-          source: "coupang",
-          imageUrl: "/api/placeholder/300/200",
-          productUrl: "https://coupang.com/example"
-        }
-      ]
-    }
-    
-    return {
-      product: mockProduct,
-      similarProducts,
-      marketAnalysis
-    }
-  }
-  
-  export default function ProductDetailPage({ params }: ProductDetailProps) {
-    const router = useRouter()
-    const [productId, setProductId] = useState<string>("")
-    
-    const [product, setProduct] = useState<Product | null>(null)
-    const [similarProducts, setSimilarProducts] = useState<Product[]>([])
-    const [marketAnalysis, setMarketAnalysis] = useState<MarketAnalysis | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+  id: string;
+  title: string;
+  price: number;
+  priceText: string;
+  source: string;
+  imageUrl: string;
+  productUrl: string;
+  location?: string;
+  description?: string;
+  condition?: string;
+  sellerName?: string;
+  images?: string[];
+  specs?: Record<string, string>;
+  timestamp?: string;
+}
 
-    useEffect(() => {
-        const getParams = async () => {
-          const resolvedParams = await params
-          setProductId(resolvedParams.id)
-        }
-        getParams()
-      }, [params])
-  
-    const fetchProductDetails = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const response = await getProductDetails(productId)
-        setProduct(response.product)
-        setSimilarProducts(response.similarProducts)
-        setMarketAnalysis(response.marketAnalysis)
-      } catch (err) {
-        // console.error 제거
-        setError("상품 정보를 불러오는데 실패했습니다."+err)
-      } finally {
-        setLoading(false)
-      }
+interface MarketProduct {
+  id: string;
+  title: string;
+  price: number;
+  priceText: string;
+  source: string;
+  imageUrl: string;
+  productUrl: string;
+}
+
+interface MarketAnalysis {
+  marketPrice: number;
+  disparity: number;
+  disparityPercentage: number;
+  marketProducts: MarketProduct[];
+}
+
+interface ProductDetailResponse {
+  product: Product;
+  similarProducts: Product[];
+  marketAnalysis: MarketAnalysis;
+}
+
+interface ProductDetailProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+// Mock API function
+const getProductDetails = async (id: string): Promise<ProductDetailResponse> => {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  const mockProduct: Product = {
+    id: id,
+    title: "아이폰 14 Pro 128GB 딥퍼플",
+    price: 920000,
+    priceText: "920,000원",
+    source: "danggeun",
+    imageUrl: "/api/placeholder/400/300",
+    productUrl: "https://example.com/1",
+    location: "용답동",
+    description: "아이폰 14 Pro 128GB 딥퍼플 색상입니다. 케이스와 함께 사용해서 상태 양호합니다.",
+    condition: "상급",
+    sellerName: "김**",
+    images: ["/api/placeholder/400/300", "/api/placeholder/400/300"],
+    specs: {
+      모델명: "iPhone 14 Pro",
+      용량: "128GB",
+      색상: "딥퍼플",
+      출시년도: "2022년",
+    },
+    timestamp: new Date().toISOString(),
+  };
+
+  const similarProducts: Product[] = [
+    {
+      id: "2",
+      title: "아이폰 14 Pro 256GB 스페이스블랙",
+      price: 1050000,
+      priceText: "1,050,000원",
+      source: "bunjang",
+      imageUrl: "/api/placeholder/400/300",
+      productUrl: "https://example.com/2", // 누락된 productUrl 추가
+      location: "성수동",
+    },
+  ];
+
+  const marketAnalysis: MarketAnalysis = {
+    marketPrice: 1200000,
+    disparity: 280000,
+    disparityPercentage: 23.3,
+    marketProducts: [
+      {
+        id: "market1",
+        title: "아이폰 14 Pro 128GB (쿠팡)",
+        price: 1200000,
+        priceText: "1,200,000원",
+        source: "coupang",
+        imageUrl: "/api/placeholder/300/200",
+        productUrl: "https://coupang.com/example",
+      },
+    ],
+  };
+
+  return {
+    product: mockProduct,
+    similarProducts,
+    marketAnalysis,
+  };
+};
+
+export default function ProductDetailPage({ params }: ProductDetailProps) {
+  const router = useRouter();
+  const [productId, setProductId] = useState<string>("");
+
+  const [product, setProduct] = useState<Product | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [marketAnalysis, setMarketAnalysis] = useState<MarketAnalysis | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getParams = async () => {
+      const resolvedParams = await params;
+      setProductId(resolvedParams.id);
+    };
+    getParams();
+  }, [params]);
+
+  const fetchProductDetails = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getProductDetails(productId);
+      setProduct(response.product);
+      setSimilarProducts(response.similarProducts);
+      setMarketAnalysis(response.marketAnalysis);
+    } catch (err) {
+      // console.error 제거
+      setError("상품 정보를 불러오는데 실패했습니다." + err);
+    } finally {
+      setLoading(false);
     }
-  
-    useEffect(() => {
-      if (productId) {
-        fetchProductDetails()
-      }
-    }, [productId])
+  };
+
+  useEffect(() => {
+    if (productId) {
+      fetchProductDetails();
+    }
+  }, [productId]);
 
   if (loading) {
     return (
-      <div className="container mx-auto max-w-6xl px-4 py-12 text-center">
-        <Loader2 className="w-12 h-12 animate-spin text-brand-500 mx-auto mb-4" />
-        <p>상품 정보를 불러오는 중...</p>
+      <div className="container mx-auto max-w-6xl px-4 py-12">
+        <DynamicLoader type="general" subtitle="상품 상세 정보를 불러오고 있습니다." />
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -198,7 +198,7 @@ interface Product {
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
   if (!product) {
@@ -208,23 +208,17 @@ interface Product {
           <AlertDescription>상품을 찾을 수 없습니다.</AlertDescription>
         </Alert>
         <div className="text-center">
-          <Button onClick={() => router.push("/search")}>
-            검색으로 돌아가기
-          </Button>
+          <Button onClick={() => router.push("/search")}>검색으로 돌아가기</Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="container mx-auto max-w-6xl px-4 py-6">
         {/* 뒤로가기 버튼 */}
-        <Button 
-          variant="outline" 
-          onClick={() => router.back()}
-          className="mb-6"
-        >
+        <Button variant="outline" onClick={() => router.back()} className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
           돌아가기
         </Button>
@@ -235,8 +229,8 @@ interface Product {
           <Card className="rounded-xl">
             <CardContent className="p-0">
               <div className="aspect-square bg-gray-100 rounded-t-xl overflow-hidden">
-                <img 
-                  src={product.images?.[0] || product.imageUrl} 
+                <img
+                  src={product.images?.[0] || product.imageUrl}
                   alt={product.title}
                   className="w-full h-full object-cover"
                 />
@@ -247,7 +241,7 @@ interface Product {
                     <div
                       key={i}
                       className={`w-20 h-20 flex-shrink-0 border-2 rounded-lg overflow-hidden ${
-                        i === 0 ? 'border-brand-500' : 'border-gray-200'
+                        i === 0 ? "border-brand-500" : "border-gray-200"
                       }`}
                     >
                       <img
@@ -266,7 +260,7 @@ interface Product {
           <Card className="rounded-xl h-fit">
             <CardContent className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <Badge 
+                <Badge
                   className="text-white"
                   style={{ backgroundColor: getSourceColor(product.source) }}
                 >
@@ -280,10 +274,8 @@ interface Product {
               </div>
 
               <h1 className="text-2xl font-bold mb-4">{product.title}</h1>
-              
-              <div className="text-3xl font-bold text-brand-500 mb-6">
-                {product.priceText}
-              </div>
+
+              <div className="text-3xl font-bold text-brand-500 mb-6">{product.priceText}</div>
 
               {/* 시장가 비교 */}
               {marketAnalysis && (
@@ -294,7 +286,8 @@ interface Product {
                       시장가 대비 {marketAnalysis.disparityPercentage.toFixed(1)}% 저렴
                     </div>
                     <div className="text-sm">
-                      시장가: {formatPrice(marketAnalysis.marketPrice)} | 절약: {formatPrice(marketAnalysis.disparity)}
+                      시장가: {formatPrice(marketAnalysis.marketPrice)} | 절약:{" "}
+                      {formatPrice(marketAnalysis.disparity)}
                     </div>
                   </AlertDescription>
                 </Alert>
@@ -327,9 +320,7 @@ interface Product {
               {/* 상품 설명 */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">제품 설명</h3>
-                <p className="text-gray-700 leading-relaxed">
-                  {product.description}
-                </p>
+                <p className="text-gray-700 leading-relaxed">{product.description}</p>
               </div>
 
               {/* 액션 버튼 */}
@@ -398,13 +389,13 @@ interface Product {
                 </TableHeader>
                 <TableBody>
                   {marketAnalysis.marketProducts.map((marketProduct: MarketProduct) => {
-                    const diff = marketProduct.price - product.price
-                    const pct = (diff / marketProduct.price) * 100
+                    const diff = marketProduct.price - product.price;
+                    const pct = (diff / marketProduct.price) * 100;
                     return (
                       <TableRow key={marketProduct.id}>
                         <TableCell>
                           <div className="flex items-center">
-                            <Badge 
+                            <Badge
                               className="mr-2 text-white"
                               style={{ backgroundColor: getSourceColor(marketProduct.source) }}
                             >
@@ -418,7 +409,7 @@ interface Product {
                           {formatPrice(diff)} ({pct.toFixed(1)}%)
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })}
                 </TableBody>
               </Table>
@@ -438,32 +429,26 @@ interface Product {
                   onClick={() => router.push(`/product/${similarProduct.id}`)}
                 >
                   <div className="aspect-video bg-gray-100 rounded-t-xl overflow-hidden">
-                    <img 
-                      src={similarProduct.imageUrl} 
+                    <img
+                      src={similarProduct.imageUrl}
                       alt={similarProduct.title}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-center mb-2">
-                      <Badge 
+                      <Badge
                         className="text-white"
                         style={{ backgroundColor: getSourceColor(similarProduct.source) }}
                       >
                         {getSourceName(similarProduct.source)}
                       </Badge>
                       {similarProduct.location && (
-                        <span className="text-xs text-gray-500">
-                          {similarProduct.location}
-                        </span>
+                        <span className="text-xs text-gray-500">{similarProduct.location}</span>
                       )}
                     </div>
-                    <h3 className="font-semibold mb-2 line-clamp-2">
-                      {similarProduct.title}
-                    </h3>
-                    <p className="text-xl font-bold text-brand-500">
-                      {similarProduct.priceText}
-                    </p>
+                    <h3 className="font-semibold mb-2 line-clamp-2">{similarProduct.title}</h3>
+                    <p className="text-xl font-bold text-brand-500">{similarProduct.priceText}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -472,5 +457,5 @@ interface Product {
         )}
       </div>
     </div>
-  )
+  );
 }
