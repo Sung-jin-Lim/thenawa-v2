@@ -30,8 +30,15 @@ export class BunjangScraper extends BaseScraper {
       // Navigate with domcontentloaded (faster than networkidle2)
       await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
 
-      // Wait a bit for page to stabilize instead of waiting for specific selector
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Wait for the primary selector (from working example)
+      try {
+        await page.waitForSelector("a[data-pid]", { timeout: 10000 });
+        console.log("✅ 번개장터 a[data-pid] 선택자 발견!");
+      } catch {
+        console.log("⚠️ 번개장터 a[data-pid] 선택자 대기 실패, 다른 방법 시도...");
+        // Wait a bit for page to stabilize instead of waiting for specific selector
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
 
       // Get HTML and parse with Cheerio
       const html = await page.content();
@@ -39,15 +46,15 @@ export class BunjangScraper extends BaseScraper {
 
       const $ = cheerio.load(html);
 
-      // Try multiple selectors to find products (more robust approach)
+      // Try multiple selectors to find products (prioritize working selector from example)
       const selectors = [
-        "a[data-pid]",
+        "a[data-pid]", // ⭐ This is the PRIMARY working selector from example!
         'a[href*="/product/"]',
         ".product-item",
         ".item-card",
-        'a[href*="/products/"]',
         'div[class*="product"]',
         'div[class*="item"]',
+        'a[href*="/products/"]', // Move this to the end as it's finding wrong elements
       ];
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,8 +133,17 @@ export class BunjangScraper extends BaseScraper {
           const href = card.attr("href") || "";
           const productUrl = href.startsWith("http") ? href : this.baseUrl + href;
 
-          // More lenient validation
-          if (title && title.length > 2 && productUrl && productUrl.includes("bunjang")) {
+          // Improved validation to exclude navigation elements
+          if (
+            title &&
+            title.length > 2 &&
+            !title.includes("판매하기") &&
+            !title.includes("로그인") &&
+            !title.includes("회원가입") &&
+            !title.includes("번개장터") &&
+            productUrl &&
+            productUrl.includes("bunjang")
+          ) {
             const product: Product = {
               id: `bunjang-${index}-${Date.now()}`,
               title: title.substring(0, 100).trim(),

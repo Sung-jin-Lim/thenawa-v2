@@ -73,55 +73,47 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
     );
   });
 
-  // 🔥 Strategy 2: 2개씩 병렬 처리
-  for (let i = 0; i < prioritizedSources.length; i += SCRAPER_CONFIG.PARALLEL_LIMIT) {
-    const batch = prioritizedSources.slice(i, i + SCRAPER_CONFIG.PARALLEL_LIMIT);
+  // 🔥 Strategy 2: 모든 소스를 한 번에 병렬 처리 (중복 실행 방지)
+  const batchPromises = prioritizedSources.map((source) => {
+    switch (source) {
+      case "danggeun":
+        return runScraperWithTimeout(
+          DanggeunScraper,
+          query,
+          limitPerSource,
+          SCRAPER_CONFIG.DANGGEUN_TIMEOUT
+        ); // 당근마켓 전용 타임아웃
+      case "bunjang":
+        return runScraperWithTimeout(
+          BunjangScraper,
+          query,
+          limitPerSource,
+          SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT
+        ); // 번개장터
+      case "junggonara":
+        return runScraperWithTimeout(
+          JunggonaraScraper,
+          query,
+          limitPerSource,
+          SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT
+        ); // 중고나라
+      default:
+        return Promise.resolve([]);
+    }
+  });
 
-    const batchPromises = batch.map((source) => {
-      switch (source) {
-        case "danggeun":
-          return runScraperWithTimeout(
-            DanggeunScraper,
-            query,
-            limitPerSource,
-            SCRAPER_CONFIG.DANGGEUN_TIMEOUT
-          ); // 당근마켓 전용 타임아웃
-        case "bunjang":
-          return runScraperWithTimeout(
-            BunjangScraper,
-            query,
-            limitPerSource,
-            SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT
-          ); // 번개장터
-        case "junggonara":
-          return runScraperWithTimeout(
-            JunggonaraScraper,
-            query,
-            limitPerSource,
-            SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT
-          ); // 중고나라
-        default:
-          return Promise.resolve([]);
-      }
-    });
+  const batchResults = await Promise.all(batchPromises);
 
-    const batchResults = await Promise.all(batchPromises);
+  // 🔥 개선된 결과 수집 및 로깅
+  batchResults.forEach((results, index) => {
+    const source = prioritizedSources[index];
+    console.log(`📦 ${source} 결과 수집: ${results.length}개 상품`);
+    allProducts.push(...results);
+  });
 
-    // 🔥 개선된 결과 수집 및 로깅
-    batchResults.forEach((results, index) => {
-      const source = batch[index];
-      console.log(`📦 ${source} 결과 수집: ${results.length}개 상품`);
-      allProducts.push(...results);
-    });
+  console.log(`📊 전체 배치 완료: ${allProducts.length}개 결과 (${prioritizedSources.join(", ")})`);
 
-    // 🔥 Strategy 3: 조기 종료 완화 - 모든 플랫폼이 완료되도록
-    console.log(
-      `📊 배치 ${i / SCRAPER_CONFIG.PARALLEL_LIMIT + 1} 완료: ${
-        allProducts.length
-      }개 결과 (${batch.join(", ")})`
-    );
-    // 조기 종료 로직 제거하여 모든 플랫폼이 실행되도록 함
-  }
+  // Strategy 3: All platforms execute once - no early termination
 
   return allProducts;
 }
