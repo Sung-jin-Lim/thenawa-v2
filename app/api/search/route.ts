@@ -11,11 +11,11 @@ export const maxDuration = 40; // 🔥 40초로 증가 (Vercel 환경 대응)
 // 🔧 타입 정의
 type ScraperConstructor = new () => BaseScraper;
 
-// 🔥 환경별 타임아웃 설정
+// 🔥 환경별 타임아웃 설정 (Vercel 제약 고려하여 더 관대하게)
 const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV;
 const SCRAPER_CONFIG = {
-  INDIVIDUAL_TIMEOUT: isVercel ? 12000 : 8000, // Vercel: 12초, Local: 8초
-  DANGGEUN_TIMEOUT: isVercel ? 20000 : 15000, // Danggeun은 더 길게 (Vercel: 20초, Local: 15초)
+  INDIVIDUAL_TIMEOUT: isVercel ? 18000 : 8000, // Vercel: 18초, Local: 8초
+  DANGGEUN_TIMEOUT: isVercel ? 25000 : 15000, // Danggeun은 더 길게 (Vercel: 25초, Local: 15초)
   TOTAL_TIMEOUT: isVercel ? 35000 : 25000, // 전체 타임아웃 (Vercel: 35초, Local: 25초)
   MIN_RESULTS: 15, // 🔥 15개로 증가 (조기 종료 방지)
   PARALLEL_LIMIT: 2, // 동시 실행 개수 제한
@@ -25,6 +25,16 @@ console.log(
   `🔧 환경 설정: ${isVercel ? "Vercel" : "Local"}, 타임아웃: ${SCRAPER_CONFIG.TOTAL_TIMEOUT}ms`
 );
 
+// 🔧 Vercel 환경 디버깅
+if (isVercel) {
+  console.log(`🔍 Vercel 환경 세부정보: {
+    VERCEL: ${process.env.VERCEL},
+    VERCEL_ENV: ${process.env.VERCEL_ENV},
+    개별타임아웃: ${SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT}ms,
+    당근타임아웃: ${SCRAPER_CONFIG.DANGGEUN_TIMEOUT}ms
+  }`);
+}
+
 // Configuration is now defined above
 
 // 🔥 핵심 최적화 2: 타임아웃과 조기 종료가 있는 스크래퍼 실행
@@ -32,30 +42,40 @@ async function runScraperWithTimeout(
   ScraperClass: ScraperConstructor,
   query: string,
   limit: number,
-  timeoutMs: number = SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT
+  timeoutMs: number = SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT,
+  sourceName: string // 🔧 명시적 소스명 전달 (빌드 최적화 대응)
 ): Promise<Product[]> {
-  const scraperName = ScraperClass.name.replace("Scraper", "");
+  let isResolved = false; // 🔧 중복 해결 방지
 
   return new Promise(async (resolve) => {
     // 타임아웃 설정
     const timeout = setTimeout(() => {
-      console.log(`⏰ ${scraperName} 타임아웃 (${timeoutMs}ms) - 빈 배열 반환`);
-      resolve([]);
+      if (!isResolved) {
+        isResolved = true;
+        console.log(`⏰ ${sourceName} 타임아웃 (${timeoutMs}ms) - 빈 배열 반환`);
+        resolve([]);
+      }
     }, timeoutMs);
 
     try {
       const scraper = new ScraperClass();
-      console.log(`🚀 ${scraperName} 시작 (제한시간: ${timeoutMs}ms)`);
+      console.log(`🚀 ${sourceName} 시작 (제한시간: ${timeoutMs}ms)`);
 
       const results = await scraper.searchProducts(query, limit);
-      console.log(`✅ ${scraperName} 완료: ${results.length}개 (${Date.now()}ms)`);
 
-      clearTimeout(timeout);
-      resolve(results);
+      if (!isResolved) {
+        isResolved = true;
+        console.log(`✅ ${sourceName} 완료: ${results.length}개 (${Date.now()}ms)`);
+        clearTimeout(timeout);
+        resolve(results);
+      }
     } catch (error) {
-      console.error(`❌ ${scraperName} 오류:`, error);
-      clearTimeout(timeout);
-      resolve([]);
+      if (!isResolved) {
+        isResolved = true;
+        console.error(`❌ ${sourceName} 스크래핑 오류:`, error);
+        clearTimeout(timeout);
+        resolve([]);
+      }
     }
   });
 }
@@ -81,21 +101,24 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
           DanggeunScraper,
           query,
           limitPerSource,
-          SCRAPER_CONFIG.DANGGEUN_TIMEOUT
+          SCRAPER_CONFIG.DANGGEUN_TIMEOUT,
+          "당근마켓"
         ); // 당근마켓 전용 타임아웃
       case "bunjang":
         return runScraperWithTimeout(
           BunjangScraper,
           query,
           limitPerSource,
-          SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT
+          SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT,
+          "번개장터"
         ); // 번개장터
       case "junggonara":
         return runScraperWithTimeout(
           JunggonaraScraper,
           query,
           limitPerSource,
-          SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT
+          SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT,
+          "중고나라"
         ); // 중고나라
       default:
         return Promise.resolve([]);
@@ -107,7 +130,15 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
   // 🔥 개선된 결과 수집 및 로깅
   batchResults.forEach((results, index) => {
     const source = prioritizedSources[index];
-    console.log(`📦 ${source} 결과 수집: ${results.length}개 상품`);
+    const sourceName =
+      source === "danggeun"
+        ? "당근마켓"
+        : source === "bunjang"
+        ? "번개장터"
+        : source === "junggonara"
+        ? "중고나라"
+        : source;
+    console.log(`📦 ${sourceName} 결과 수집: ${results.length}개 상품`);
     allProducts.push(...results);
   });
 
