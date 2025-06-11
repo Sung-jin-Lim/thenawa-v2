@@ -202,6 +202,17 @@ export default function SearchPageContent() {
         priceRange[0],
         priceRange[1]
       );
+
+      // Debug logging for API response
+      console.log("🔍 API Response Debug:", {
+        totalProducts: result.products.length,
+        sourceCounts: result.products.reduce((acc, p) => {
+          acc[p.source] = (acc[p.source] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        bunjangProducts: result.products.filter((p) => p.source === "bunjang").map((p) => p.title),
+      });
+
       setProducts(result.products);
       setSelectedIds([]);
 
@@ -302,6 +313,18 @@ export default function SearchPageContent() {
   const includeKeys = tokens.filter((t) => t.startsWith("+")).map((t) => t.slice(1));
   const excludeKeys = tokens.filter((t) => t.startsWith("-")).map((t) => t.slice(1));
 
+  // Debug logging for product filtering
+  console.log("🔍 Frontend Debug:", {
+    totalProducts: products.length,
+    sourceCounts: products.reduce((acc, p) => {
+      acc[p.source] = (acc[p.source] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    activeTab,
+    selectedSources,
+    priceRange,
+  });
+
   const filtered = products
     .filter((p) => (activeTab === "all" ? true : p.source === activeTab))
     .filter((p) => selectedSources.includes(p.source))
@@ -312,6 +335,14 @@ export default function SearchPageContent() {
   const sorted = [...filtered].sort((a, b) =>
     sortBy === "price_asc" ? a.price - b.price : b.price - a.price
   );
+
+  // Debug logging for final results
+  console.log("📊 Filtered Results:", {
+    filteredCount: filtered.length,
+    finalCount: sorted.length,
+    bunjangFiltered: filtered.filter((p) => p.source === "bunjang").length,
+    bunjangFinal: sorted.filter((p) => p.source === "bunjang").length,
+  });
 
   // 🤖 AI 추천 상품 여부 확인 함수
   const isAIRecommended = useCallback(
