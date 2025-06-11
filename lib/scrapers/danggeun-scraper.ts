@@ -42,10 +42,11 @@ export class DanggeunScraper extends BaseScraper {
       )}&search=${encodedQuery}`;
       console.log(`🔍 당근마켓 검색: ${url}`);
 
-      // Navigate to search page
+      // Navigate to search page with Vercel-friendly timeout
+      const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV;
       await page.goto(url, {
         waitUntil: "networkidle0",
-        timeout: 15000,
+        timeout: isVercel ? 25000 : 15000, // 25초 for Vercel, 15초 for local
       });
 
       console.log(`🔍 당근마켓 선택자 대기 중...`);

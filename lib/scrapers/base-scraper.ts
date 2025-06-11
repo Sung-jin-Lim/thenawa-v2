@@ -146,9 +146,15 @@ export abstract class BaseScraper {
       }
     });
 
-    // 🔥 최적화 4: 매우 짧은 타임아웃
-    this.page.setDefaultTimeout(5000); // 5초로 단축
-    this.page.setDefaultNavigationTimeout(8000); // 8초로 단축
+    // 🔥 최적화 4: Vercel 환경 맞춘 타임아웃
+    const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV;
+    if (isVercel) {
+      this.page.setDefaultTimeout(10000); // Vercel: 10초
+      this.page.setDefaultNavigationTimeout(15000); // Vercel: 15초
+    } else {
+      this.page.setDefaultTimeout(5000); // Local: 5초
+      this.page.setDefaultNavigationTimeout(8000); // Local: 8초
+    }
   }
 
   async cleanup(): Promise<void> {

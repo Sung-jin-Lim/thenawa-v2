@@ -6,18 +6,26 @@ import { BaseScraper } from "@/lib/scrapers/base-scraper";
 import { SearchRequest, SearchResponse, Product } from "@/types/product";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 25; // 🔥 25초로 단축 (Vercel 안전 마진)
+export const maxDuration = 40; // 🔥 40초로 증가 (Vercel 환경 대응)
 
 // 🔧 타입 정의
 type ScraperConstructor = new () => BaseScraper;
 
-// 🔥 핵심 최적화 1: 매우 짧은 타임아웃으로 빠른 실패
+// 🔥 환경별 타임아웃 설정
+const isVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV;
 const SCRAPER_CONFIG = {
-  INDIVIDUAL_TIMEOUT: 8000, // 각 스크래퍼당 8초만!
-  TOTAL_TIMEOUT: 20000, // 전체 20초 제한
+  INDIVIDUAL_TIMEOUT: isVercel ? 12000 : 8000, // Vercel: 12초, Local: 8초
+  DANGGEUN_TIMEOUT: isVercel ? 20000 : 15000, // Danggeun은 더 길게 (Vercel: 20초, Local: 15초)
+  TOTAL_TIMEOUT: isVercel ? 35000 : 25000, // 전체 타임아웃 (Vercel: 35초, Local: 25초)
   MIN_RESULTS: 15, // 🔥 15개로 증가 (조기 종료 방지)
   PARALLEL_LIMIT: 2, // 동시 실행 개수 제한
 } as const;
+
+console.log(
+  `🔧 환경 설정: ${isVercel ? "Vercel" : "Local"}, 타임아웃: ${SCRAPER_CONFIG.TOTAL_TIMEOUT}ms`
+);
+
+// Configuration is now defined above
 
 // 🔥 핵심 최적화 2: 타임아웃과 조기 종료가 있는 스크래퍼 실행
 async function runScraperWithTimeout(
@@ -72,11 +80,26 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
     const batchPromises = batch.map((source) => {
       switch (source) {
         case "danggeun":
-          return runScraperWithTimeout(DanggeunScraper, query, limitPerSource, 15000); // 당근마켓은 15초로 증가
+          return runScraperWithTimeout(
+            DanggeunScraper,
+            query,
+            limitPerSource,
+            SCRAPER_CONFIG.DANGGEUN_TIMEOUT
+          ); // 당근마켓 전용 타임아웃
         case "bunjang":
-          return runScraperWithTimeout(BunjangScraper, query, limitPerSource, 8000); // 번개장터는 8초로 증가
+          return runScraperWithTimeout(
+            BunjangScraper,
+            query,
+            limitPerSource,
+            SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT
+          ); // 번개장터
         case "junggonara":
-          return runScraperWithTimeout(JunggonaraScraper, query, limitPerSource, 8000); // 중고나라는 8초
+          return runScraperWithTimeout(
+            JunggonaraScraper,
+            query,
+            limitPerSource,
+            SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT
+          ); // 중고나라
         default:
           return Promise.resolve([]);
       }
