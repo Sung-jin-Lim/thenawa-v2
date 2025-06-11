@@ -335,7 +335,13 @@ export default function ProductDetailPage({ params }: ProductDetailProps) {
                 <Button
                   variant="outline"
                   className="w-full border-brand-200 text-brand-500 hover:bg-brand-50"
-                  onClick={() => router.push(`/compare?ids=${product.id}`)}
+                  onClick={() =>
+                    router.push(
+                      `/search?q=${encodeURIComponent(
+                        product.title.split(" ").slice(0, 2).join(" ")
+                      )}`
+                    )
+                  }
                 >
                   <ArrowUpDown className="w-4 h-4 mr-2" />
                   다른 제품과 비교하기

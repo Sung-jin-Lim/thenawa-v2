@@ -237,8 +237,15 @@ export default function SearchPageContent() {
   }, []);
 
   const goCompare = useCallback(() => {
-    router.push(`/compare?ids=${selectedIds.join(",")}`);
-  }, [router, selectedIds]);
+    // Get the full product objects for the selected IDs
+    const selectedProducts = products.filter((product) => selectedIds.includes(product.id));
+
+    if (selectedProducts.length >= 2) {
+      // Encode the full product objects as JSON
+      const encodedProducts = encodeURIComponent(JSON.stringify(selectedProducts));
+      router.push(`/compare?products=${encodedProducts}`);
+    }
+  }, [router, selectedIds, products]);
 
   const handleSourcesChange = useCallback((value: string) => {
     const newSources = value.split(",").filter(Boolean);
