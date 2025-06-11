@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# project documentation (sensitive/local files)
+DEPLOYMENT_CHECKLIST.md
+DEVELOPMENT_CONTEXT.md
