@@ -9,7 +9,6 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ArrowLeft,
-  Loader2,
   Star,
   TrendingUp,
   TrendingDown,
@@ -59,7 +58,7 @@ interface ProductAnalysis {
 }
 
 interface ComparisonAnalysis {
-  comparison: Record<string, string>;
+  comparison: Record<string, string | Record<string, string>>;
   products: ProductAnalysis[];
   bestValue: {
     productId: string;
@@ -105,8 +104,17 @@ export default function ComparisonPageContent() {
         console.log("📦 Raw product data (first 300 chars):", productData.substring(0, 300));
         console.log("📦 Raw product data (last 100 chars):", productData.slice(-100));
 
-        const decodedData = decodeURIComponent(productData);
-        console.log("🔓 Decoded data (first 300 chars):", decodedData.substring(0, 300));
+        // Safely decode URI with error handling
+        let decodedData;
+        try {
+          decodedData = decodeURIComponent(productData);
+          console.log("🔓 Decoded data (first 300 chars):", decodedData.substring(0, 300));
+        } catch (decodeError) {
+          console.error("❌ URI decoding failed:", decodeError);
+          // Try using the raw data if decoding fails
+          decodedData = productData;
+          console.log("🔄 Using raw data instead:", decodedData.substring(0, 300));
+        }
 
         const parsedProducts = JSON.parse(decodedData);
         console.log("✅ Parsed products:", {
@@ -427,12 +435,52 @@ export default function ComparisonPageContent() {
               <div>
                 <h3 className="text-lg font-semibold mb-4">📊 카테고리별 비교</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(analysis.comparison).map(([key, value]) => (
-                    <div key={key} className="bg-gray-50 rounded-lg p-4">
-                      <div className="font-medium text-brand-600 mb-2">{key}</div>
-                      <div className="text-gray-700 text-sm">{value as string}</div>
-                    </div>
-                  ))}
+                  {Object.entries(analysis.comparison).map(([key, value]) => {
+                    // Handle both string and object values from AI response
+                    const renderValue = () => {
+                      if (typeof value === "string") {
+                        return value;
+                      } else if (typeof value === "object" && value !== null) {
+                        // If it's an object, try to extract the most relevant content
+                        const objValue = value as Record<string, string>;
+
+                        // Priority order for extracting meaningful info
+                        const priorityKeys = [
+                          "가성비",
+                          "상태 비교",
+                          "신뢰도",
+                          "사양 비교",
+                          "위치 편의성",
+                          "비교",
+                          "분석",
+                          "결과",
+                          "평가",
+                        ];
+
+                        // Try to find a priority key first
+                        for (const key of priorityKeys) {
+                          if (key in objValue && objValue[key]) {
+                            return objValue[key];
+                          }
+                        }
+
+                        // If no priority key found, combine all non-empty string values
+                        const values = Object.values(objValue)
+                          .filter((v) => typeof v === "string" && v.trim().length > 0)
+                          .join(" | ");
+
+                        return values || "정보 없음";
+                      }
+                      return String(value);
+                    };
+
+                    return (
+                      <div key={key} className="bg-gray-50 rounded-lg p-4">
+                        <div className="font-medium text-brand-600 mb-2">{key}</div>
+                        <div className="text-gray-700 text-sm">{renderValue()}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

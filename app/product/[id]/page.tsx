@@ -22,7 +22,6 @@ import {
   User,
   Tag,
   ShoppingCart,
-  Loader2,
   TrendingDown,
 } from "lucide-react";
 import DynamicLoader from "@/components/ui/dynamic-loader";

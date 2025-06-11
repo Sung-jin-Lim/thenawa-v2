@@ -25,7 +25,6 @@ import {
   Plus,
   Loader2,
   Sparkles,
-  Brain,
   Zap,
   Star,
 } from "lucide-react";
@@ -241,9 +240,48 @@ export default function SearchPageContent() {
     const selectedProducts = products.filter((product) => selectedIds.includes(product.id));
 
     if (selectedProducts.length >= 2) {
-      // Encode the full product objects as JSON
-      const encodedProducts = encodeURIComponent(JSON.stringify(selectedProducts));
-      router.push(`/compare?products=${encodedProducts}`);
+      try {
+        // Clean and sanitize product data for safer encoding
+        const cleanProducts = selectedProducts.map((product) => ({
+          ...product,
+          title: product.title.replace(/[\u200B-\u200D\uFEFF]/g, ""), // Remove zero-width spaces
+        }));
+
+        // Encode the full product objects as JSON with safer encoding
+        const jsonString = JSON.stringify(cleanProducts);
+        const encodedProducts = encodeURIComponent(jsonString);
+
+        console.log("🔄 Navigating to comparison with", cleanProducts.length, "products");
+        console.log(
+          "📏 JSON length:",
+          jsonString.length,
+          "Encoded length:",
+          encodedProducts.length
+        );
+
+        router.push(`/compare?products=${encodedProducts}`);
+      } catch (error) {
+        console.error("❌ Error encoding products for comparison:", error);
+        // Fallback: try with minimal data
+        try {
+          const minimalProducts = selectedProducts.map((product) => ({
+            id: product.id,
+            title: product.title.substring(0, 100), // Truncate title
+            price: product.price,
+            priceText: product.priceText,
+            source: product.source,
+            productUrl: product.productUrl,
+            imageUrl: product.imageUrl,
+            location: product.location || "",
+            description: product.title, // Use title as description fallback
+          }));
+          const encodedProducts = encodeURIComponent(JSON.stringify(minimalProducts));
+          router.push(`/compare?products=${encodedProducts}`);
+        } catch (fallbackError) {
+          console.error("❌ Fallback encoding also failed:", fallbackError);
+          alert("비교 페이지로 이동하는데 문제가 발생했습니다. 다시 시도해주세요.");
+        }
+      }
     }
   }, [router, selectedIds, products]);
 
