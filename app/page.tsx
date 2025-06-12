@@ -1,27 +1,25 @@
-'use client'
+"use client";
 
-import React, { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { 
-  Search
-} from "lucide-react"
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Search } from "lucide-react";
 
 export default function HomePage() {
-  const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}&location=용답동`)
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}&location=용답동`);
     }
-  }
+  };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-orange-50 min-h-screen">
+    <div className="bg-gradient-to-br from-blue-50 via-white to-orange-50 min-h-screen flex flex-col">
       {/* 헤더 */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200">
         <div className="container mx-auto max-w-6xl px-4 py-4">
@@ -47,17 +45,16 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main>
+      <main className="flex-1">
         {/* 히어로 섹션 */}
         <section className="py-20">
           <div className="container mx-auto max-w-4xl px-4 text-center">
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-              중고거래, 이제 
+              중고거래, 이제
               <span className="text-brand-500"> 한 번에</span>
             </h1>
             <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-              당근마켓, 번개장터, 중고나라를 동시에 검색하고 
-              AI가 추천하는 최적의 상품을 찾아보세요
+              당근마켓, 번개장터, 중고나라를 동시에 검색하고 AI가 추천하는 최적의 상품을 찾아보세요
             </p>
 
             {/* 검색 바 */}
@@ -69,8 +66,8 @@ export default function HomePage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full h-16 text-lg pr-16 rounded-2xl border-2 border-gray-200 focus:border-brand-500 shadow-lg"
                 />
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   size="lg"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-brand-500 hover:bg-brand-600 rounded-xl"
                 >
@@ -99,7 +96,7 @@ export default function HomePage() {
       </main>
 
       {/* 푸터 */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-gray-900 text-white py-12 mt-auto">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
@@ -109,9 +106,7 @@ export default function HomePage() {
                 </div>
                 <span className="text-xl font-bold">더나와</span>
               </div>
-              <p className="text-gray-400 text-sm">
-                중고거래의 새로운 패러다임을 제시합니다
-              </p>
+              <p className="text-gray-400 text-sm">중고거래의 새로운 패러다임을 제시합니다</p>
             </div>
 
             <div>
@@ -154,5 +149,5 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
