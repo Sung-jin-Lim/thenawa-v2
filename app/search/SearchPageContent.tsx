@@ -352,6 +352,22 @@ export default function SearchPageContent() {
     [aiRecommendedIds]
   );
 
+  // 🔗 추천 상품으로 스크롤하는 함수
+  const scrollToRecommendedItem = useCallback(() => {
+    if (aiRecommendedIds.length > 0) {
+      const firstRecommendedId = aiRecommendedIds[0];
+      const element = document.getElementById(`product-${firstRecommendedId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        // 시각적 강조를 위해 잠시 애니메이션 효과 추가
+        element.classList.add("animate-pulse");
+        setTimeout(() => {
+          element.classList.remove("animate-pulse");
+        }, 2000);
+      }
+    }
+  }, [aiRecommendedIds]);
+
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* 헤더 섹션 */}
@@ -482,11 +498,15 @@ export default function SearchPageContent() {
                         <span>{aiError}</span>
                       </div>
                     ) : aiRecommendedIds.length > 0 ? (
-                      <div className="space-y-3">
+                      <div
+                        className="space-y-3 cursor-pointer hover:bg-amber-50 p-3 rounded-lg transition-colors"
+                        onClick={scrollToRecommendedItem}
+                        title="클릭하여 추천 상품으로 이동"
+                      >
                         <div className="flex items-center gap-2 text-amber-700">
                           <Zap className="w-4 h-4" />
                           <span className="font-medium">
-                            {aiRecommendedIds.length}개 상품을 AI가 추천했습니다!
+                            {aiRecommendedIds.length}개 상품을 AI가 추천했습니다! 👆 클릭하여 이동
                           </span>
                         </div>
                         {aiReasoning && (
@@ -617,6 +637,7 @@ export default function SearchPageContent() {
                 return (
                   <Card
                     key={product.id}
+                    id={`product-${product.id}`}
                     className={`rounded-xl border-2 transition-all hover:scale-105 hover:shadow-lg relative ${
                       isRecommended
                         ? "border-amber-400 bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 shadow-amber-200 shadow-lg ring-2 ring-amber-200"
