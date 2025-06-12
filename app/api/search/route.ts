@@ -129,20 +129,87 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
     }
   });
 
-  // 🔥 Strategy 3: Vercel 조기 성공 감지
+  // 🔥 Strategy 3: Vercel 조기 성공 감지 + 스마트 폴백
   if (SCRAPER_CONFIG.VERCEL_FAST_MODE) {
     console.log("🚀 Vercel 고속 모드: 첫 번째 성공 시 조기 응답 고려");
 
-    // 중고나라가 성공하면 다른 결과를 기다리지만, 전체 타임아웃 단축
+    // 🚀 Puppeteer 스킵 모드 - Bunjang이 느리면 다른 것들로만 응답
+    const isVercel = process.env.VERCEL === "1";
+    if (isVercel) {
+      // Fast scrapers만 빠르게 실행하고, Bunjang은 별도 처리
+      const fastScrapers = prioritizedSources.filter((source) => source !== "bunjang");
+      const bunjangIndex = prioritizedSources.indexOf("bunjang");
+
+      console.log("🚀 Vercel Fast-First 모드: 빠른 스크래퍼 우선 실행");
+
+      // Fast scrapers 먼저 실행 (당근마켓 + 중고나라)
+      const fastPromises = fastScrapers.map((source) => {
+        switch (source) {
+          case "danggeun":
+            return runScraperWithTimeout(
+              DanggeunFastScraper,
+              query,
+              limitPerSource,
+              10000,
+              "당근마켓"
+            );
+          case "junggonara":
+            return runScraperWithTimeout(
+              JunggonaraFastScraper,
+              query,
+              limitPerSource,
+              10000,
+              "중고나라"
+            );
+          default:
+            return Promise.resolve([]);
+        }
+      });
+
+      // Bunjang은 더 긴 타임아웃으로 별도 실행
+      const bunjangPromise =
+        bunjangIndex !== -1
+          ? runScraperWithTimeout(BunjangFastScraper, query, limitPerSource, 25000, "번개장터")
+          : Promise.resolve([]);
+
+      // 빠른 결과들을 먼저 기다림
+      const fastResults = await Promise.all(fastPromises);
+      const quickProducts = fastResults.flat();
+
+      console.log(`🚀 빠른 결과 확보: ${quickProducts.length}개 상품`);
+
+      // 충분한 결과가 있으면 Bunjang 결과를 기다리지만 타임아웃 설정
+      if (quickProducts.length >= 20) {
+        const bunjangTimeout = new Promise<Product[]>((resolve) => {
+          setTimeout(() => {
+            console.log("⚡ Bunjang 타임아웃, 빠른 결과로 응답");
+            resolve([]);
+          }, 8000); // 8초 추가 대기
+        });
+
+        const bunjangResult = await Promise.race([bunjangPromise, bunjangTimeout]);
+        const allResults = [...fastResults, bunjangResult];
+        const resultSources = [...fastScrapers, ...(bunjangIndex !== -1 ? ["bunjang"] : [])];
+        return processResults(allResults, resultSources, allProducts);
+      } else {
+        // 빠른 결과가 부족하면 Bunjang을 끝까지 기다림
+        console.log("🔄 빠른 결과 부족, Bunjang 완료 대기");
+        const bunjangResult = await bunjangPromise;
+        const allResults = [...fastResults, bunjangResult];
+        const resultSources = [...fastScrapers, ...(bunjangIndex !== -1 ? ["bunjang"] : [])];
+        return processResults(allResults, resultSources, allProducts);
+      }
+    }
+
+    // Non-Vercel environments: original logic
     const raceTimeout = new Promise<Product[][]>((resolve) => {
       setTimeout(() => {
         console.log("⚡ Vercel 고속 모드: 부분 결과로 응답");
-        resolve([]); // 빈 배열로 race 종료, Promise.all이 완료될 때까지 기다림
-      }, SCRAPER_CONFIG.TOTAL_TIMEOUT - 3000); // 전체보다 3초 일찍
+        resolve([]);
+      }, SCRAPER_CONFIG.TOTAL_TIMEOUT - 3000);
     });
 
     const results = await Promise.race([Promise.all(batchPromises), raceTimeout]);
-
     const batchResults =
       Array.isArray(results) && results.length > 0 ? results : await Promise.all(batchPromises);
     return processResults(batchResults, prioritizedSources, allProducts);

@@ -35,32 +35,56 @@ class BrowserManager {
 
       if (isVercel) {
         console.log(`🚀 Using @sparticuz/chromium-min for Vercel environment`);
+
+        // 🚀 Vercel optimizations for speed
+        const vercelArgs = [
+          ...chromium.args,
+          // 🚀 Core performance optimizations
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+          "--disable-gpu-sandbox",
+          "--disable-software-rasterizer",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--disable-features=TranslateUI,BlinkGenPropertyTrees,AudioServiceOutOfProcess",
+          "--disable-ipc-flooding-protection",
+          "--disable-extensions",
+          "--disable-default-apps",
+          "--no-first-run",
+          "--no-default-browser-check",
+          "--disable-popup-blocking",
+          "--disable-translate",
+          "--metrics-recording-only",
+          "--use-mock-keychain",
+          // 🚀 Memory optimizations
+          "--memory-pressure-off",
+          "--max_old_space_size=4096",
+          "--disable-background-networking",
+          "--disable-background-media",
+          "--disable-client-side-phishing-detection",
+          "--disable-sync",
+          "--disable-speech-api",
+          // 🚀 Network optimizations
+          "--aggressive-cache-discard",
+          "--enable-features=NetworkService,NetworkServiceInProcess",
+          "--force-color-profile=srgb",
+        ];
+
         this.browser = await puppeteer.launch({
-          args: [
-            ...chromium.args,
-            "--disable-gpu",
-            "--disable-dev-shm-usage",
-            "--disable-setuid-sandbox",
-            "--no-first-run",
-            "--no-default-browser-check",
-            "--disable-default-apps",
-            "--disable-popup-blocking",
-            "--disable-translate",
-            "--disable-background-timer-throttling",
-            "--disable-backgrounding-occluded-windows",
-            "--disable-renderer-backgrounding",
-            "--disable-features=TranslateUI,BlinkGenPropertyTrees",
-            "--disable-ipc-flooding-protection",
-            "--enable-features=NetworkService,NetworkServiceInProcess",
-            "--force-color-profile=srgb",
-            "--metrics-recording-only",
-            "--use-mock-keychain",
-          ],
+          args: vercelArgs,
           executablePath: await chromium.executablePath(remoteExecutablePath),
           headless: true,
           defaultViewport: { width: 1280, height: 800 },
+          timeout: 45000, // 🚀 Even longer timeout for Vercel cold starts
+          slowMo: 0, // 🚀 No artificial delays
+          handleSIGINT: false,
+          handleSIGTERM: false,
+          handleSIGHUP: false,
         });
-        console.log(`✅ Vercel browser launched with @sparticuz/chromium-min`);
+        console.log(`✅ Vercel browser launched with optimizations`);
       } else {
         console.log(`🚀 Using local Chrome for development environment`);
 

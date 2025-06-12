@@ -27,24 +27,53 @@ export class BunjangFastScraper extends BaseScraper {
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36"
       );
 
-      // 🚀 Disable images and other resources for speed
+      // 🚀 Aggressive resource blocking for Vercel performance
       await page.setRequestInterception(true);
       page.on("request", (req) => {
         const resourceType = req.resourceType();
-        if (resourceType === "image" || resourceType === "stylesheet" || resourceType === "font") {
-          req.abort();
+        const url = req.url();
+
+        // 🚀 Block more resources in Vercel for speed
+        const isVercel = process.env.VERCEL === "1";
+        if (isVercel) {
+          if (
+            resourceType === "image" ||
+            resourceType === "stylesheet" ||
+            resourceType === "font" ||
+            resourceType === "media" ||
+            url.includes("google-analytics") ||
+            url.includes("googletagmanager") ||
+            url.includes("facebook.net") ||
+            url.includes("doubleclick.net")
+          ) {
+            req.abort();
+          } else {
+            req.continue();
+          }
         } else {
-          req.continue();
+          // Original blocking for local development
+          if (
+            resourceType === "image" ||
+            resourceType === "stylesheet" ||
+            resourceType === "font"
+          ) {
+            req.abort();
+          } else {
+            req.continue();
+          }
         }
       });
 
       const searchUrl = `${this.baseUrl}/search/products?q=${encodeURIComponent(query)}`;
       console.log(`🔍 번개장터 검색: ${searchUrl}`);
 
-      // 🚀 Faster navigation - don't wait for all resources
+      // 🚀 Faster navigation - optimized for environment
+      const isVercel = process.env.VERCEL === "1";
+      const navigationTimeout = isVercel ? 15000 : 8000; // Longer timeout for Vercel serverless
+
       await page.goto(searchUrl, {
         waitUntil: "domcontentloaded", // Much faster than networkidle
-        timeout: 8000,
+        timeout: navigationTimeout,
       });
 
       // 🚀 Quick selector wait with short timeout
