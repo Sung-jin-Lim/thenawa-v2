@@ -756,7 +756,11 @@ export default function SearchPageContent() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => router.push(`/product/${product.id}`)}
+                        onClick={() => {
+                          // Encode the full product data to pass to detail page
+                          const productData = encodeURIComponent(JSON.stringify(product));
+                          router.push(`/product/${product.id}?productData=${productData}`);
+                        }}
                         className={`${
                           isRecommended
                             ? "text-amber-600 border-amber-300 hover:bg-amber-50"

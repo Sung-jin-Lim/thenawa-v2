@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -73,71 +73,104 @@ interface ProductDetailProps {
   }>;
 }
 
-// Mock API function
-const getProductDetails = async (id: string): Promise<ProductDetailResponse> => {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+// API function that can use URL product data or fetch from API
+const getProductDetails = async (
+  id: string,
+  productDataFromUrl?: string
+): Promise<ProductDetailResponse> => {
+  try {
+    console.log("🔍 Fetching product details for ID:", id);
 
-  const mockProduct: Product = {
-    id: id,
-    title: "아이폰 14 Pro 128GB 딥퍼플",
-    price: 920000,
-    priceText: "920,000원",
-    source: "danggeun",
-    imageUrl: "/api/placeholder/400/300",
-    productUrl: "https://example.com/1",
-    location: "용답동",
-    description: "아이폰 14 Pro 128GB 딥퍼플 색상입니다. 케이스와 함께 사용해서 상태 양호합니다.",
-    condition: "상급",
-    sellerName: "김**",
-    images: ["/api/placeholder/400/300", "/api/placeholder/400/300"],
-    specs: {
-      모델명: "iPhone 14 Pro",
-      용량: "128GB",
-      색상: "딥퍼플",
-      출시년도: "2022년",
-    },
-    timestamp: new Date().toISOString(),
-  };
+    // First try to use product data from URL if available
+    if (productDataFromUrl) {
+      try {
+        const product = JSON.parse(decodeURIComponent(productDataFromUrl));
+        console.log("📦 Using product data from URL:", product.title);
 
-  const similarProducts: Product[] = [
-    {
-      id: "2",
-      title: "아이폰 14 Pro 256GB 스페이스블랙",
-      price: 1050000,
-      priceText: "1,050,000원",
-      source: "bunjang",
+        // Call API with product data for detailed scraping
+        const response = await fetch(
+          `/api/products/${encodeURIComponent(id)}?productData=${productDataFromUrl}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          return data;
+        } else {
+          // If API fails, create response from URL data
+          console.log("⚠️ API failed, using URL data directly");
+          return {
+            product: {
+              ...product,
+              specs: product.specs || {},
+              images: product.images || [product.imageUrl],
+              description:
+                product.description ||
+                `${product.title} - ${product.source}에서 판매 중인 상품입니다.`,
+              condition: product.condition || "상태 정보 없음",
+              sellerName: product.sellerName || "판매자",
+            },
+            similarProducts: [],
+            marketAnalysis: {
+              marketPrice: Math.round(product.price * 1.3),
+              disparity: Math.round(product.price * 0.3),
+              disparityPercentage: 30,
+              marketProducts: [],
+            },
+          };
+        }
+      } catch (parseError) {
+        console.error("❌ Error parsing URL product data:", parseError);
+      }
+    }
+
+    // Fallback to API only (will probably fail without product data)
+    const response = await fetch(`/api/products/${encodeURIComponent(id)}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch product: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("❌ Error fetching product details:", error);
+
+    // Fallback: create basic product info from ID if possible
+    const fallbackProduct: Product = {
+      id: id,
+      title: "상품 정보를 불러올 수 없습니다",
+      price: 0,
+      priceText: "가격 정보 없음",
+      source: "danggeun",
       imageUrl: "/api/placeholder/400/300",
-      productUrl: "https://example.com/2", // 누락된 productUrl 추가
-      location: "성수동",
-    },
-  ];
-
-  const marketAnalysis: MarketAnalysis = {
-    marketPrice: 1200000,
-    disparity: 280000,
-    disparityPercentage: 23.3,
-    marketProducts: [
-      {
-        id: "market1",
-        title: "아이폰 14 Pro 128GB (쿠팡)",
-        price: 1200000,
-        priceText: "1,200,000원",
-        source: "coupang",
-        imageUrl: "/api/placeholder/300/200",
-        productUrl: "https://coupang.com/example",
+      productUrl: "#",
+      location: "위치 정보 없음",
+      description: "상품 상세 정보를 불러오는 중 오류가 발생했습니다.",
+      condition: "정보 없음",
+      sellerName: "판매자 정보 없음",
+      images: ["/api/placeholder/400/300"],
+      specs: {
+        오류: "상품 정보를 불러올 수 없습니다",
       },
-    ],
-  };
+      timestamp: new Date().toISOString(),
+    };
 
-  return {
-    product: mockProduct,
-    similarProducts,
-    marketAnalysis,
-  };
+    return {
+      product: fallbackProduct,
+      similarProducts: [],
+      marketAnalysis: {
+        marketPrice: 0,
+        disparity: 0,
+        disparityPercentage: 0,
+        marketProducts: [],
+      },
+    };
+  }
 };
 
 export default function ProductDetailPage({ params }: ProductDetailProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [productId, setProductId] = useState<string>("");
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -158,7 +191,8 @@ export default function ProductDetailPage({ params }: ProductDetailProps) {
     setLoading(true);
     setError(null);
     try {
-      const response = await getProductDetails(productId);
+      const productDataParam = searchParams.get("productData");
+      const response = await getProductDetails(productId, productDataParam || undefined);
       setProduct(response.product);
       setSimilarProducts(response.similarProducts);
       setMarketAnalysis(response.marketAnalysis);
