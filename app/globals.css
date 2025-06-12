@@ -116,7 +116,59 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
+  }
+
+  /* Custom scrollbar for dark mode */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted/10;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+
+  /* Dark mode specific adjustments */
+  .dark {
+    color-scheme: dark;
+  }
+
+  .dark img {
+    @apply opacity-90;
+  }
+
+  /* Ensure proper contrast for interactive elements */
+  .dark .bg-brand-500 {
+    @apply bg-blue-600;
+  }
+
+  .dark .hover\:bg-brand-600:hover {
+    @apply bg-blue-700;
+  }
+
+  .dark .text-brand-500 {
+    @apply text-blue-400;
+  }
+
+  .dark .border-brand-200 {
+    @apply border-blue-800;
+  }
+
+  .dark .hover\:bg-brand-50:hover {
+    @apply bg-blue-950/50;
   }
 }

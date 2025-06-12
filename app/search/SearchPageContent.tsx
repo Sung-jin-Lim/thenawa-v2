@@ -28,6 +28,7 @@ import {
   Zap,
   Star,
 } from "lucide-react";
+
 import DynamicLoader from "@/components/ui/dynamic-loader";
 import { formatPrice, getSourceName, getSourceColor } from "@/lib/utils";
 
@@ -390,53 +391,50 @@ export default function SearchPageContent() {
             </Badge>
           </div>
 
-          {/* 검색 바 */}
-          <form onSubmit={handleSearch} className="mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-              <div className="md:col-span-8">
-                <div className="relative">
-                  <Input
-                    placeholder="찾고 있는 상품을 검색해보세요"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-12 pr-12 rounded-xl border-2 focus:border-brand-500"
-                  />
-                  <Button
-                    type="submit"
-                    size="icon"
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-brand-500 hover:bg-brand-600"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Search className="h-4 w-4" />
-                    )}
-                  </Button>
+          {/* 검색 헤더 */}
+          <Card className="rounded-xl mb-6 border-brand-200 shadow-sm">
+            <CardContent className="p-4 sm:p-6">
+              <form onSubmit={handleSearch} className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="상품명을 입력하세요"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-10 sm:h-12 text-base border-brand-200 focus:border-brand-500"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="flex-1 sm:flex-initial bg-brand-500 hover:bg-brand-600 h-10 sm:h-12 px-6 sm:px-8"
+                    >
+                      {loading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="mr-2 h-4 w-4" />
+                      )}
+                      <span className="hidden sm:inline">검색</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowFilters(!showFilters)}
+                      className="h-10 sm:h-12 px-3 sm:px-4 border-brand-200"
+                    >
+                      <Settings className="h-4 w-4" />
+                      <span className="hidden sm:inline ml-2">필터</span>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <div className="md:col-span-2">
-                <Button
-                  type="submit"
-                  disabled={loading || !searchQuery.trim()}
-                  className="w-full h-12 bg-brand-500 hover:bg-brand-600 rounded-xl disabled:opacity-50"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "검색"}
-                </Button>
-              </div>
-              <div className="md:col-span-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="w-full h-12 border-brand-200 text-brand-500 hover:bg-brand-50 rounded-xl"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  필터
-                </Button>
-              </div>
-            </div>
-          </form>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">위치: {selectedLocation}</span>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
 
           {/* 검색 전 안내 메시지 */}
           {!hasSearched && !queryFromUrl && (
@@ -526,17 +524,18 @@ export default function SearchPageContent() {
 
             {/* 플랫폼 탭 */}
             <Card className="rounded-xl mb-6 border-brand-200">
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-0 h-auto sm:h-10">
                     {tabs.map((tab) => (
                       <TabsTrigger
                         key={tab.id}
                         value={tab.id}
-                        className="data-[state=active]:bg-brand-100 data-[state=active]:text-brand-700"
+                        className="data-[state=active]:bg-brand-100 data-[state=active]:text-brand-700 px-2 py-2 sm:px-3 text-xs sm:text-sm flex-col sm:flex-row gap-1 sm:gap-2"
                       >
-                        <span className="mr-2">{tab.emoji}</span>
-                        {tab.label}
+                        <span className="text-base sm:text-sm">{tab.emoji}</span>
+                        <span className="hidden sm:inline">{tab.label}</span>
+                        <span className="sm:hidden text-xs">{tab.label.slice(0, 2)}</span>
                       </TabsTrigger>
                     ))}
                   </TabsList>
@@ -547,15 +546,15 @@ export default function SearchPageContent() {
             {/* 필터 섹션 */}
             {showFilters && (
               <Card className="rounded-xl mb-6 border-brand-200">
-                <CardHeader>
-                  <CardTitle className="text-brand-500">🎛️ 세부 필터</CardTitle>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-brand-500 text-lg sm:text-xl">🎛️ 세부 필터</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <CardContent className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <div>
                       <label className="text-sm font-medium mb-2 block">검색 대상 플랫폼</label>
                       <Select value={selectedSources.join(",")} onValueChange={handleSourcesChange}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10 sm:h-12">
                           <SelectValue placeholder="플랫폼 선택" />
                         </SelectTrigger>
                         <SelectContent>
@@ -569,7 +568,7 @@ export default function SearchPageContent() {
                     <div>
                       <label className="text-sm font-medium mb-2 block">정렬 기준</label>
                       <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10 sm:h-12">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -578,18 +577,20 @@ export default function SearchPageContent() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div>
+                    <div className="sm:col-span-2 lg:col-span-1">
                       <label className="text-sm font-medium mb-2 block">
                         💵 가격 범위: {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
                       </label>
-                      <Slider
-                        value={priceRange}
-                        onValueChange={setPriceRange}
-                        min={0}
-                        max={5000000}
-                        step={10000}
-                        className="mt-2"
-                      />
+                      <div className="px-2">
+                        <Slider
+                          value={priceRange}
+                          onValueChange={setPriceRange}
+                          min={0}
+                          max={5000000}
+                          step={10000}
+                          className="mt-3"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -598,8 +599,9 @@ export default function SearchPageContent() {
                       placeholder="+포함할키워드, -제외할키워드 (쉼표로 구분)"
                       value={keywordFilter}
                       onChange={(e) => setKeywordFilter(e.target.value)}
+                      className="h-10 sm:h-12"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                       + 기호로 포함할 키워드, - 기호로 제외할 키워드를 지정하세요
                     </p>
                   </div>
@@ -631,14 +633,14 @@ export default function SearchPageContent() {
             )}
 
             {/* 상품 그리드 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
               {sorted.map((product) => {
                 const isRecommended = isAIRecommended(product.id);
                 return (
                   <Card
                     key={product.id}
                     id={`product-${product.id}`}
-                    className={`rounded-xl border-2 transition-all hover:scale-105 hover:shadow-lg relative ${
+                    className={`rounded-xl border-2 transition-all hover:scale-[1.02] sm:hover:scale-105 hover:shadow-lg relative ${
                       isRecommended
                         ? "border-amber-400 bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 shadow-amber-200 shadow-lg ring-2 ring-amber-200"
                         : selectedIds.includes(product.id)
@@ -694,10 +696,10 @@ export default function SearchPageContent() {
                         </div>
                       )}
                     </div>
-                    <CardContent className="p-4">
+                    <CardContent className="p-3 sm:p-4">
                       <div className="flex items-center justify-between mb-2">
                         <Badge
-                          className="mb-2"
+                          className="mb-2 text-xs sm:text-sm px-2 py-1"
                           style={{
                             backgroundColor: getSourceColor(product.source),
                             color: "#fff",
@@ -712,24 +714,28 @@ export default function SearchPageContent() {
                           </div>
                         )}
                       </div>
-                      <h3 className="font-semibold mb-2 line-clamp-2">{product.title}</h3>
+                      <h3 className="font-semibold mb-2 line-clamp-2 text-sm sm:text-base leading-tight">
+                        {product.title}
+                      </h3>
                       <p
-                        className={`text-xl font-bold ${
+                        className={`text-lg sm:text-xl font-bold truncate ${
                           isRecommended ? "text-amber-600" : "text-brand-500"
                         }`}
                       >
                         {product.priceText}
                       </p>
                       {product.location && (
-                        <p className="text-sm text-gray-600 mt-1">📍 {product.location}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">
+                          📍 {product.location}
+                        </p>
                       )}
                     </CardContent>
-                    <CardFooter className="p-4 pt-0 space-x-2">
+                    <CardFooter className="p-3 sm:p-4 pt-0 flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => window.open(product.productUrl)}
-                        className={`${
+                        className={`flex-1 sm:flex-initial text-xs sm:text-sm h-8 sm:h-9 ${
                           isRecommended
                             ? "text-amber-600 border-amber-300 hover:bg-amber-50"
                             : "text-brand-500 border-brand-200 hover:bg-brand-50"
@@ -742,16 +748,21 @@ export default function SearchPageContent() {
                         size="sm"
                         variant={selectedIds.includes(product.id) ? "default" : "outline"}
                         onClick={() => toggleSelect(product.id)}
-                        className={
+                        className={`flex-1 sm:flex-initial text-xs sm:text-sm h-8 sm:h-9 ${
                           selectedIds.includes(product.id)
                             ? "bg-brand-500 hover:bg-brand-600"
                             : isRecommended
                             ? "text-amber-600 border-amber-300 hover:bg-amber-50"
                             : "text-brand-500 border-brand-200 hover:bg-brand-50"
-                        }
+                        }`}
                       >
                         <Plus className="w-3 h-3 mr-1" />
-                        {selectedIds.includes(product.id) ? "선택됨" : "선택"}
+                        <span className="hidden sm:inline">
+                          {selectedIds.includes(product.id) ? "선택됨" : "선택"}
+                        </span>
+                        <span className="sm:hidden">
+                          {selectedIds.includes(product.id) ? "✓" : "+"}
+                        </span>
                       </Button>
                       <Button
                         size="sm"
@@ -761,7 +772,7 @@ export default function SearchPageContent() {
                           const productData = encodeURIComponent(JSON.stringify(product));
                           router.push(`/product/${product.id}?productData=${productData}`);
                         }}
-                        className={`${
+                        className={`flex-1 sm:flex-initial text-xs sm:text-sm h-8 sm:h-9 ${
                           isRecommended
                             ? "text-amber-600 border-amber-300 hover:bg-amber-50"
                             : "text-brand-500 border-brand-200 hover:bg-brand-50"
