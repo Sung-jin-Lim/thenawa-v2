@@ -184,10 +184,12 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
           setTimeout(() => {
             console.log("⚡ Bunjang 타임아웃, 빠른 결과로 응답");
             resolve([]);
-          }, 8000); // 8초 추가 대기
+          }, 15000); // 8초 → 15초로 증가 (Bunjang의 navigation timeout과 맞춤)
         });
 
+        console.log(`⏳ Bunjang 완료 대기 중... (최대 15초)`);
         const bunjangResult = await Promise.race([bunjangPromise, bunjangTimeout]);
+        console.log(`✅ Bunjang 결과: ${bunjangResult.length}개 상품`);
         const allResults = [...fastResults, bunjangResult];
         const resultSources = [...fastScrapers, ...(bunjangIndex !== -1 ? ["bunjang"] : [])];
         return processResults(allResults, resultSources, allProducts);

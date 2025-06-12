@@ -69,28 +69,37 @@ export class BunjangFastScraper extends BaseScraper {
 
       // 🚀 Faster navigation - optimized for environment
       const isVercel = process.env.VERCEL === "1";
-      const navigationTimeout = isVercel ? 15000 : 8000; // Longer timeout for Vercel serverless
+      const navigationTimeout = isVercel ? 12000 : 8000; // 15초 → 12초로 단축
 
+      const navStart = Date.now();
       await page.goto(searchUrl, {
         waitUntil: "domcontentloaded", // Much faster than networkidle
         timeout: navigationTimeout,
       });
+      console.log(`🚀 번개장터 페이지 로드: ${Date.now() - navStart}ms`);
 
       // 🚀 Quick selector wait with short timeout
+      const selectorStart = Date.now();
       try {
-        await page.waitForSelector("a[data-pid]", { timeout: 3000 });
-        console.log("✅ 번개장터 a[data-pid] 선택자 발견!");
+        await page.waitForSelector("a[data-pid]", { timeout: 2000 }); // 3초 → 2초로 단축
+        console.log(`✅ 번개장터 a[data-pid] 선택자 발견! (${Date.now() - selectorStart}ms)`);
       } catch {
         // Don't wait long - just continue
-        console.log("⚠️ 번개장터 선택자 빠른 실패, 계속 진행...");
+        console.log(`⚠️ 번개장터 선택자 빠른 실패, 계속 진행... (${Date.now() - selectorStart}ms)`);
       }
 
+      const contentStart = Date.now();
       const html = await page.content();
+      console.log(`📄 번개장터 HTML 추출: ${Date.now() - contentStart}ms`);
+
+      const parseStart = Date.now();
       const $ = cheerio.load(html);
 
       // Find products using the known working selector
       const productCards = $("a[data-pid]");
-      console.log(`🎯 번개장터 상품 카드 발견: ${productCards.length}개`);
+      console.log(
+        `🎯 번개장터 상품 카드 발견: ${productCards.length}개 (파싱: ${Date.now() - parseStart}ms)`
+      );
 
       if (productCards.length === 0) {
         console.log("❌ 번개장터: 상품을 찾을 수 없음");
