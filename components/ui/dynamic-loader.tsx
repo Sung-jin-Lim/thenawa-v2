@@ -18,27 +18,28 @@ interface DynamicLoaderProps {
   subtitle?: string;
   showProgress?: boolean;
   completed?: boolean; // Add prop to complete progress to 100%
+  actualProgress?: number; // 🔥 External progress control (0-100)
 }
 
 const loadingSteps = {
   search: [
-    { icon: Search, text: "검색 요청 처리 중...", duration: 2000 },
-    { icon: Package, text: "번개장터 상품 수집 중...", duration: 4000 },
-    { icon: Package, text: "중고나라 상품 수집 중...", duration: 4000 },
-    { icon: Package, text: "당근마켓 상품 수집 중...", duration: 4000 },
-    { icon: TrendingUp, text: "결과 정렬 및 정리 중...", duration: 2000 },
-    { icon: CheckCircle, text: "검색 완료!", duration: 500 },
+    { icon: Search, text: "검색 요청 처리 중...", duration: 100 },
+    { icon: Package, text: "번개장터 API 수집 중...", duration: 150 },
+    { icon: Package, text: "중고나라 스크래핑 중...", duration: 200 },
+    { icon: Package, text: "당근마켓 데이터 수집 중...", duration: 150 },
+    { icon: TrendingUp, text: "결과 정렬 및 정리 중...", duration: 100 },
+    { icon: CheckCircle, text: "검색 완료!", duration: 300 },
   ],
   "ai-analysis": [
-    { icon: Brain, text: "AI 모델 초기화 중...", duration: 1500 },
-    { icon: Sparkles, text: "상품 데이터 분석 중...", duration: 4000 },
-    { icon: Star, text: "추천 상품 선별 중...", duration: 2000 },
-    { icon: Zap, text: "분석 완료!", duration: 500 },
+    { icon: Brain, text: "AI 모델 연결 중...", duration: 800 },
+    { icon: Sparkles, text: "상품 데이터 분석 중...", duration: 2500 },
+    { icon: Star, text: "추천 상품 선별 중...", duration: 1000 },
+    { icon: Zap, text: "분석 완료!", duration: 300 },
   ],
   comparison: [
-    { icon: Package, text: "상품 정보 수집 중...", duration: 2500 },
-    { icon: Brain, text: "AI 비교 분석 중...", duration: 4500 },
-    { icon: TrendingUp, text: "평가 점수 계산 중...", duration: 2000 },
+    { icon: Package, text: "상품 상세 정보 수집 중...", duration: 1000 },
+    { icon: Brain, text: "AI 비교 분석 중...", duration: 8000 },
+    { icon: TrendingUp, text: "분석 결과 정리 중...", duration: 1500 },
     { icon: CheckCircle, text: "비교 분석 완료!", duration: 500 },
   ],
   general: [
@@ -54,6 +55,7 @@ export default function DynamicLoader({
   subtitle,
   showProgress = true,
   completed = false,
+  actualProgress = 0,
 }: DynamicLoaderProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -71,15 +73,28 @@ export default function DynamicLoader({
     const interval = setInterval(() => {
       currentTime += 100;
 
-      // More realistic progress calculation - slower at the end
+      // More realistic progress calculation based on operation type
       let baseProgress = (currentTime / totalTime) * 100;
 
-      // Apply easing function to slow down progress near the end
-      if (baseProgress > 80) {
-        // Slow down significantly after 80%
-        const remainingProgress = baseProgress - 80;
-        const easedRemaining = remainingProgress * 0.6; // 60% speed after 80%
-        baseProgress = 80 + easedRemaining;
+      // Apply different easing based on loader type
+      if (type === "search") {
+        // For fast searches, progress more quickly and smoothly
+        baseProgress = Math.min(baseProgress * 1.2, 90); // Speed up but cap at 90%
+      } else if (type === "comparison") {
+        // For slow operations like comparison, apply stronger easing
+        if (baseProgress > 70) {
+          // Slow down significantly after 70% for long operations
+          const remainingProgress = baseProgress - 70;
+          const easedRemaining = remainingProgress * 0.4; // 40% speed after 70%
+          baseProgress = 70 + easedRemaining;
+        }
+      } else if (type === "ai-analysis") {
+        // For AI operations, moderate easing
+        if (baseProgress > 75) {
+          const remainingProgress = baseProgress - 75;
+          const easedRemaining = remainingProgress * 0.6; // 60% speed after 75%
+          baseProgress = 75 + easedRemaining;
+        }
       }
 
       const newProgress = Math.min(baseProgress, completed ? 100 : 95); // Complete to 100% if operation finished
@@ -97,7 +112,17 @@ export default function DynamicLoader({
     }, 100);
 
     return () => clearInterval(interval);
-  }, [showProgress, steps, completed]);
+  }, [showProgress, steps, completed, type]);
+
+  // 🔥 Use external progress if provided
+  useEffect(() => {
+    if (actualProgress > 0) {
+      setProgress(actualProgress);
+      // Update step based on progress
+      const stepIndex = Math.floor((actualProgress / 100) * (steps.length - 1));
+      setCurrentStep(Math.min(stepIndex, steps.length - 1));
+    }
+  }, [actualProgress, steps.length]);
 
   // Handle completion
   useEffect(() => {
