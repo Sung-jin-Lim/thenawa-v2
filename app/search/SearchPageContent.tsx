@@ -73,7 +73,7 @@ const searchProducts = async (
     body: JSON.stringify({
       query,
       sources,
-      limit: 20,
+      limit: 50, // 🔥 20개 → 50개로 증가
     }),
   });
 

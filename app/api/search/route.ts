@@ -87,7 +87,7 @@ async function runScraperWithTimeout(
 // 🔥 핵심 최적화 3: Vercel 적응형 병렬 처리
 async function runScrapersOptimized(query: string, sources: string[]): Promise<Product[]> {
   const allProducts: Product[] = [];
-  const limitPerSource = 7; // 🔥 각 플랫폼당 고정 7개씩
+  const limitPerSource = 20; // 🔥 각 플랫폼당 7개 → 20개로 증가
 
   // 🔥 Strategy 1: 중고나라 우선 (Vercel에서 가장 안정적)
   const prioritizedSources = sources.sort((a, b) => {
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body: SearchRequest = await request.json();
-    const { query, sources = ["danggeun", "bunjang", "junggonara"], limit = 10 } = body; // 🔥 당근마켓 다시 포함
+    const { query, sources = ["danggeun", "bunjang", "junggonara"], limit = 50 } = body; // 🔥 10개 → 50개 기본값
 
     if (!query?.trim()) {
       clearTimeout(globalTimeout);
