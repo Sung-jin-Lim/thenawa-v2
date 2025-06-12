@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DanggeunScraper } from "@/lib/scrapers/danggeun-scraper";
+// import { DanggeunScraper } from "@/lib/scrapers/danggeun-scraper";
+import { DanggeunFastScraper } from "@/lib/scrapers/danggeun-fast-scraper";
 import { BunjangScraper } from "@/lib/scrapers/bunjang-scraper";
 import { JunggonaraScraper } from "@/lib/scrapers/junggonara-scraper";
 import { BaseScraper } from "@/lib/scrapers/base-scraper";
@@ -101,7 +102,7 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
     switch (source) {
       case "danggeun":
         return runScraperWithTimeout(
-          DanggeunScraper,
+          DanggeunFastScraper, //check if this is working
           query,
           limitPerSource,
           SCRAPER_CONFIG.DANGGEUN_TIMEOUT,
