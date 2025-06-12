@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 // import { DanggeunScraper } from "@/lib/scrapers/danggeun-scraper";
 import { DanggeunFastScraper } from "@/lib/scrapers/danggeun-fast-scraper";
 import { BunjangScraper } from "@/lib/scrapers/bunjang-scraper";
-import { JunggonaraScraper } from "@/lib/scrapers/junggonara-scraper";
+import { JunggonaraFastScraper } from "@/lib/scrapers/junggonara-fast-scraper";
 import { BaseScraper } from "@/lib/scrapers/base-scraper";
 import { SearchRequest, SearchResponse, Product } from "@/types/product";
 
@@ -118,12 +118,12 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
         ); // 번개장터
       case "junggonara":
         return runScraperWithTimeout(
-          JunggonaraScraper,
+          JunggonaraFastScraper,
           query,
           limitPerSource,
           SCRAPER_CONFIG.INDIVIDUAL_TIMEOUT,
           "중고나라"
-        ); // 중고나라 (가장 안정적)
+        ); // 중고나라 (이제 Fast-Fetch!)
       default:
         return Promise.resolve([]);
     }
