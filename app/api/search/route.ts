@@ -85,9 +85,13 @@ async function runScraperWithTimeout(
 }
 
 // 🔥 핵심 최적화 3: Vercel 적응형 병렬 처리
-async function runScrapersOptimized(query: string, sources: string[]): Promise<Product[]> {
+async function runScrapersOptimized(
+  query: string,
+  sources: string[],
+  requestedLimit: number = 50
+): Promise<Product[]> {
   const allProducts: Product[] = [];
-  const limitPerSource = 20; // 🔥 각 플랫폼당 7개 → 20개로 증가
+  const limitPerSource = Math.max(requestedLimit, 20); // 🔥 요청된 limit 사용하되 최소 20개는 보장
 
   // 🔥 Strategy 1: 중고나라 우선 (Vercel에서 가장 안정적)
   const prioritizedSources = sources.sort((a, b) => {
@@ -179,7 +183,8 @@ async function runScrapersOptimized(query: string, sources: string[]): Promise<P
       console.log(`🚀 빠른 결과 확보: ${quickProducts.length}개 상품`);
 
       // 충분한 결과가 있으면 Bunjang 결과를 기다리지만 타임아웃 설정
-      if (quickProducts.length >= 20) {
+      if (quickProducts.length >= Math.min(requestedLimit * 0.6, 20)) {
+        // 요청량의 60% 또는 최소 20개
         const bunjangTimeout = new Promise<Product[]>((resolve) => {
           setTimeout(() => {
             console.log("⚡ Bunjang 타임아웃, 빠른 결과로 응답");
@@ -284,7 +289,7 @@ export async function POST(request: NextRequest) {
     );
 
     // 🔥 최적화된 스크래핑 실행
-    const products = await runScrapersOptimized(query, sources);
+    const products = await runScrapersOptimized(query, sources, limit);
 
     clearTimeout(globalTimeout);
 
@@ -301,6 +306,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 🔥 빠른 중복 제거 (간단한 URL 기반)
+    console.log(`🔍 중복 제거 전: ${products.length}개 상품, 요청 limit: ${limit}`);
     const uniqueProducts = products
       .filter(
         (product, index, self) =>
@@ -308,6 +314,7 @@ export async function POST(request: NextRequest) {
       )
       .sort((a, b) => a.price - b.price)
       .slice(0, limit);
+    console.log(`🔍 중복 제거 후 slice 적용: ${uniqueProducts.length}개 상품 (limit: ${limit})`);
 
     // 🔥 최종 결과 검증 로깅
     const finalSourceBreakdown = uniqueProducts.reduce((acc, product) => {
