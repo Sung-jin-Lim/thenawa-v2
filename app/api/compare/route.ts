@@ -75,25 +75,31 @@ async function generateComparison(products: ProductDetail[]): Promise<Comparison
     console.log("🤖 AI 비교 분석 시작...");
 
     // 🔥 최적화된 간결한 프롬프트 (처리 속도 향상)
-    const prompt = `중고거래 전문가로서 다음 ${products.length}개 제품을 간단히 비교 분석해주세요.
+    const prompt = `중고거래 전문가로서 다음 ${products.length}개 제품을 상세히 비교 분석해주세요.
 
 제품들:
 ${products
   .map(
     (product, index) => `
 ${index + 1}. ${product.title} - ${product.priceText}
-   플랫폼: ${product.source} | 상태: ${product.condition}
-   설명: ${product.description.substring(0, 80)}...`
+   플랫폼: ${product.source} | 판매자: ${product.sellerName}
+   전체 설명: ${product.description}`
   )
   .join("\n")}
+
+**중요 분석 지침**:
+- 제목과 설명을 자세히 읽고 실제 상태를 추출하세요 (배터리%, 하자유무, 사용감, 보증상태 등)
+- "상태 정보 없음"이라고 표시된 경우에도 설명에서 상태를 유추하세요
+- 판매자의 신뢰도와 거래방식을 분석하세요
+- 실제 사양과 가격 대비 가치를 평가하세요
 
 아래 JSON 형식으로만 응답해주세요 (다른 텍스트 없이):
 
 {
   "comparison": {
     "가격": "가격 비교 요약",
-    "상태": "상태 비교 요약", 
-    "판매자": "플랫폼 신뢰도 비교",
+    "상태": "제목/설명에서 분석한 실제 상태 정보",
+    "판매자": "플랫폼별 신뢰도와 판매자 특징",
     "사양": "사양 비교 요약",
     "위치": "거래 편의성 비교"
   },
@@ -101,18 +107,20 @@ ${index + 1}. ${product.title} - ${product.priceText}
     {
       "id": "${products[0].id}",
       "valueRating": 7,
-      "pros": ["장점1", "장점2"],
-      "cons": ["단점1", "단점2"], 
+      "pros": ["실제 장점 (상태, 가격, 사양 기반)"],
+      "cons": ["실제 단점 (상태, 가격, 문제점)"], 
       "conditionScore": 7,
-      "priceScore": 8
+      "priceScore": 8,
+      "extractedCondition": "제목과 설명에서 추출한 구체적 상태 (예: 배터리 77%, 하자없음, 상급 등)",
+      "extractedSellerInfo": "판매자 특징이나 신뢰도 정보"
     }
   ],
   "bestValue": {
     "productId": "추천_제품_ID",
-    "reason": "추천 이유"
+    "reason": "상태, 가격, 신뢰도 기반 추천 이유"
   },
-  "recommendations": "구매 가이드",
-  "summary": "핵심 요약"
+  "recommendations": "구매 가이드 (상태와 신뢰도 고려)",
+  "summary": "핵심 요약 (실제 상태와 판매자 정보 포함)"
 }`;
 
     // Debug API key length for security

@@ -55,6 +55,8 @@ interface ProductAnalysis {
   cons: string[];
   conditionScore: number;
   priceScore: number;
+  extractedCondition?: string; // AI-extracted condition info
+  extractedSellerInfo?: string; // AI-extracted seller info
 }
 
 interface ComparisonAnalysis {
@@ -334,7 +336,11 @@ export default function ComparisonPageContent() {
                   <div className="space-y-3 border-t pt-4">
                     <div className="flex items-center text-sm text-gray-600">
                       <User className="w-4 h-4 mr-2" />
-                      판매자: {product.sellerName}
+                      판매자:{" "}
+                      {
+                        // Use AI-extracted seller info if available, otherwise use scraped data
+                        productAnalysis?.extractedSellerInfo || product.sellerName
+                      }
                     </div>
 
                     {product.location && (
@@ -346,7 +352,11 @@ export default function ComparisonPageContent() {
 
                     <div className="flex items-center text-sm text-gray-600">
                       <Package className="w-4 h-4 mr-2" />
-                      상태: {product.condition}
+                      상태:{" "}
+                      {
+                        // Use AI-extracted condition if available, otherwise use scraped data
+                        productAnalysis?.extractedCondition || product.condition
+                      }
                     </div>
 
                     {product.description && (
