@@ -305,16 +305,16 @@ export async function POST(request: NextRequest) {
       요청된소스: sources,
     });
 
-    // 🔥 빠른 중복 제거 (간단한 URL 기반)
+    // 🔥 빠른 중복 제거 (간단한 URL 기반) - 모든 수집된 상품 표시
     console.log(`🔍 중복 제거 전: ${products.length}개 상품, 요청 limit: ${limit}`);
     const uniqueProducts = products
       .filter(
         (product, index, self) =>
           index === self.findIndex((p) => p.productUrl === product.productUrl)
       )
-      .sort((a, b) => a.price - b.price)
-      .slice(0, limit);
-    console.log(`🔍 중복 제거 후 slice 적용: ${uniqueProducts.length}개 상품 (limit: ${limit})`);
+      .sort((a, b) => a.price - b.price);
+    // .slice(0, limit); // 🔥 제거: 모든 수집된 상품을 표시
+    console.log(`🔍 중복 제거 후: ${uniqueProducts.length}개 상품 (수집된 모든 상품 표시)`);
 
     // 🔥 최종 결과 검증 로깅
     const finalSourceBreakdown = uniqueProducts.reduce((acc, product) => {
