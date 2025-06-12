@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ProductDetailScraper, ProductDetail } from "@/lib/scrapers/product-detail-scraper";
+import {
+  FastProductDetailScraper,
+  ProductDetail,
+} from "@/lib/scrapers/fast-product-detail-scraper";
 
 interface ComparisonRequest {
   products: Array<{
@@ -43,54 +46,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔄 제품 비교 시작: ${products.length}개 제품`);
 
-    const scraper = new ProductDetailScraper();
-    const detailedProducts: ProductDetail[] = [];
+    const scraper = new FastProductDetailScraper();
 
-    // Scrape detailed information for each product
-    for (const product of products) {
-      try {
-        console.log(`📦 상품 상세 정보 수집: ${product.title}`);
-        const detail = await scraper.scrapeProductDetail(product.productUrl, product.source);
-
-        if (
-          detail &&
-          detail.title &&
-          detail.title !== "제품명 정보 없음" &&
-          !detail.title.includes(product.source)
-        ) {
-          // Valid detail scraped - use it
-          detailedProducts.push(detail);
-        } else {
-          console.log(
-            `⚠️ 상세 정보 수집 실패 또는 부정확한 데이터, 원본 데이터 사용: ${product.title}`
-          );
-          // Fallback to original product info with enhanced data
-          detailedProducts.push({
-            ...product,
-            source: product.source as "danggeun" | "bunjang" | "junggonara" | "coupang",
-            description: product.title + " - " + product.source + "에서 판매 중인 상품입니다.",
-            condition: "상품 상태 정보 없음",
-            sellerName: "판매자",
-            additionalImages: [product.imageUrl].filter(Boolean),
-            specifications: {},
-            tags: [],
-          });
-        }
-      } catch (error) {
-        console.error(`❌ 상품 상세 정보 수집 실패: ${product.title}`, error);
-        // Use original product info as fallback
-        detailedProducts.push({
-          ...product,
-          source: product.source as "danggeun" | "bunjang" | "junggonara" | "coupang",
-          description: product.title + " - " + product.source + "에서 판매 중인 상품입니다.",
-          condition: "상품 상태 정보 없음",
-          sellerName: "판매자",
-          additionalImages: [product.imageUrl].filter(Boolean),
-          specifications: {},
-          tags: [],
-        });
-      }
-    }
+    // Use fast parallel processing instead of sequential
+    const detailedProducts = await scraper.scrapeProductsDetails(products);
 
     console.log(`✅ 상품 상세 정보 수집 완료: ${detailedProducts.length}개`);
 
