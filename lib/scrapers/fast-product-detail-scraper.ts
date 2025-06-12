@@ -12,7 +12,8 @@ export interface ProductDetail extends Product {
 }
 
 export class FastProductDetailScraper {
-  private readonly timeout = 8000; // 8 second timeout per product
+  private readonly timeout = 5000; // 8초 → 5초로 단축 (비교용이므로 더 빠르게)
+  private readonly maxConcurrent = 6; // 최대 동시 처리 수 제한
 
   async scrapeProductsDetails(
     products: Array<{
@@ -28,32 +29,39 @@ export class FastProductDetailScraper {
     console.log(`🚀 Fast 상세 정보 수집 시작: ${products.length}개 제품 (병렬 처리)`);
     const startTime = Date.now();
 
-    // Process all products in parallel for maximum speed
-    const detailPromises = products.map(async (product, index) => {
-      try {
-        console.log(`📦 [${index + 1}/${products.length}] 상세 정보 수집: ${product.title}`);
+    // 🔥 배치 처리로 메모리와 네트워크 최적화
+    const results: ProductDetail[] = [];
+    for (let i = 0; i < products.length; i += this.maxConcurrent) {
+      const batch = products.slice(i, i + this.maxConcurrent);
 
-        // Try fast-fetch first, fallback to Puppeteer if needed
-        const detail = await this.scrapeProductDetailFast(product.productUrl, product.source);
+      const batchPromises = batch.map(async (product, index) => {
+        try {
+          console.log(`📦 [${i + index + 1}/${products.length}] 상세 정보 수집: ${product.title}`);
 
-        if (detail && this.isValidDetail(detail)) {
-          return detail;
-        } else {
-          console.log(
-            `⚠️ Fast-fetch 실패, 원본 데이터 사용: ${product.title} - 이미지: ${
-              product.imageUrl ? "있음" : "없음"
-            }`
-          );
-          // Return enhanced version of original product data
+          // Try fast-fetch first, fallback to Puppeteer if needed
+          const detail = await this.scrapeProductDetailFast(product.productUrl, product.source);
+
+          if (detail && this.isValidDetail(detail)) {
+            return detail;
+          } else {
+            console.log(
+              `⚠️ Fast-fetch 실패, 원본 데이터 사용: ${product.title} - 이미지: ${
+                product.imageUrl ? "있음" : "없음"
+              }`
+            );
+            // Return enhanced version of original product data
+            return this.createFallbackDetail(product);
+          }
+        } catch (error) {
+          console.error(`❌ 상품 상세 정보 수집 실패: ${product.title}`, error);
           return this.createFallbackDetail(product);
         }
-      } catch (error) {
-        console.error(`❌ 상품 상세 정보 수집 실패: ${product.title}`, error);
-        return this.createFallbackDetail(product);
-      }
-    });
+      });
 
-    const results = await Promise.all(detailPromises);
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+    }
+
     const totalTime = Date.now() - startTime;
 
     console.log(
