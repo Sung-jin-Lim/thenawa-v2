@@ -16,21 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Search,
-  MapPin,
-  Settings,
-  ArrowUpDown,
-  Eye,
-  Plus,
-  Loader2,
-  Sparkles,
-  Zap,
-  Star,
-} from "lucide-react";
+import { Eye, Plus, Sparkles, Zap, Star, Menu } from "lucide-react";
 
 import DynamicLoader from "@/components/ui/dynamic-loader";
 import { formatPrice, getSourceName, getSourceColor } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Logo, LogoText } from "@/components/ui/logo";
 
 // Product 타입 정의 (검색 페이지용, id로 변경)
 interface Product {
@@ -122,10 +113,7 @@ export default function SearchPageContent() {
   const searchParams = useSearchParams();
 
   const queryFromUrl = searchParams.get("q") || "";
-  const locationFromUrl = searchParams.get("location") || "용답동";
-
-  const [searchQuery, setSearchQuery] = useState(queryFromUrl);
-  const [selectedLocation] = useState(locationFromUrl);
+  // const [selectedLocation] = useState(locationFromUrl); // Not used
   const [keywordFilter, setKeywordFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +123,6 @@ export default function SearchPageContent() {
   const [selectedSources, setSelectedSources] = useState(["danggeun", "bunjang", "junggonara"]);
   const [sortBy, setSortBy] = useState("price_asc");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
   const [hasSearched, setHasSearched] = useState(false); // 검색 실행 여부 추가
 
   // 🤖 AI 추천 관련 상태
@@ -144,6 +131,8 @@ export default function SearchPageContent() {
   const [aiReasoning, setAiReasoning] = useState<string>("");
   const [aiError, setAiError] = useState<string | null>(null);
   const [showAIRecommendations, setShowAIRecommendations] = useState(true);
+
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const tabs = [
     { id: "all", label: "전체", emoji: "🔍", value: null },
@@ -155,14 +144,14 @@ export default function SearchPageContent() {
   // 🤖 AI 추천 실행 함수
   const getAIRecommendationsForProducts = useCallback(
     async (products: Product[]) => {
-      if (products.length === 0 || !searchQuery.trim()) return;
+      if (products.length === 0 || !queryFromUrl.trim()) return;
 
       setAiLoading(true);
       setAiError(null);
 
       try {
         console.log("🤖 AI 추천 요청 시작... (gemini-2.0-flash-lite)");
-        const result = await getAIRecommendations(searchQuery, products);
+        const result = await getAIRecommendations(queryFromUrl, products);
 
         if (result.success) {
           setAiRecommendedIds(result.recommendedIds);
@@ -178,11 +167,11 @@ export default function SearchPageContent() {
         setAiLoading(false);
       }
     },
-    [searchQuery]
+    [queryFromUrl]
   );
 
   const doSearch = useCallback(async () => {
-    if (!searchQuery.trim()) {
+    if (!queryFromUrl.trim()) {
       setError("검색어를 입력해주세요.");
       return;
     }
@@ -198,7 +187,7 @@ export default function SearchPageContent() {
 
     try {
       const result = await searchProducts(
-        searchQuery,
+        queryFromUrl,
         selectedSources,
         priceRange[0],
         priceRange[1]
@@ -229,73 +218,11 @@ export default function SearchPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, selectedSources, priceRange, getAIRecommendationsForProducts]);
-
-  const handleSearch = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      if (searchQuery.trim()) {
-        // URL 업데이트 (뒤로가기 지원)
-        router.push(`/search?q=${encodeURIComponent(searchQuery)}&location=${selectedLocation}`);
-        doSearch();
-      }
-    },
-    [searchQuery, selectedLocation, router, doSearch]
-  );
+  }, [queryFromUrl, selectedSources, priceRange, getAIRecommendationsForProducts]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }, []);
-
-  const goCompare = useCallback(() => {
-    // Get the full product objects for the selected IDs
-    const selectedProducts = products.filter((product) => selectedIds.includes(product.id));
-
-    if (selectedProducts.length >= 2) {
-      try {
-        // Clean and sanitize product data for safer encoding
-        const cleanProducts = selectedProducts.map((product) => ({
-          ...product,
-          title: product.title.replace(/[\u200B-\u200D\uFEFF]/g, ""), // Remove zero-width spaces
-        }));
-
-        // Encode the full product objects as JSON with safer encoding
-        const jsonString = JSON.stringify(cleanProducts);
-        const encodedProducts = encodeURIComponent(jsonString);
-
-        console.log("🔄 Navigating to comparison with", cleanProducts.length, "products");
-        console.log(
-          "📏 JSON length:",
-          jsonString.length,
-          "Encoded length:",
-          encodedProducts.length
-        );
-
-        router.push(`/compare?products=${encodedProducts}`);
-      } catch (error) {
-        console.error("❌ Error encoding products for comparison:", error);
-        // Fallback: try with minimal data
-        try {
-          const minimalProducts = selectedProducts.map((product) => ({
-            id: product.id,
-            title: product.title.substring(0, 100), // Truncate title
-            price: product.price,
-            priceText: product.priceText,
-            source: product.source,
-            productUrl: product.productUrl,
-            imageUrl: product.imageUrl,
-            location: product.location || "",
-            description: product.title, // Use title as description fallback
-          }));
-          const encodedProducts = encodeURIComponent(JSON.stringify(minimalProducts));
-          router.push(`/compare?products=${encodedProducts}`);
-        } catch (fallbackError) {
-          console.error("❌ Fallback encoding also failed:", fallbackError);
-          alert("비교 페이지로 이동하는데 문제가 발생했습니다. 다시 시도해주세요.");
-        }
-      }
-    }
-  }, [router, selectedIds, products]);
 
   const handleSourcesChange = useCallback((value: string) => {
     const newSources = value.split(",").filter(Boolean);
@@ -370,93 +297,85 @@ export default function SearchPageContent() {
   }, [aiRecommendedIds]);
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* 헤더 섹션 */}
-      <div className="bg-white shadow-sm">
-        <div className="container mx-auto max-w-6xl px-4 py-4">
-          <div className="flex items-center justify-between mb-6">
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
+      {/* 헤더 (navbar) */}
+      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+        <div className="container mx-auto max-w-6xl px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
             <div
-              className="flex items-center gap-3 cursor-pointer"
+              className="flex items-center gap-2 sm:gap-3 cursor-pointer"
               onClick={() => router.push("/")}
             >
-              <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center">
-                🔍
-              </div>
-              <span className="text-xl font-bold text-brand-500">더나와</span>
+              <Logo size={32} className="sm:w-10 sm:h-10" />
+              <LogoText className="text-lg sm:text-xl" />
             </div>
-
-            <Badge variant="outline" className="text-brand-500 border-brand-200">
-              <MapPin className="w-3 h-3 mr-1" />
-              {selectedLocation}
-            </Badge>
-          </div>
-
-          {/* 검색 헤더 */}
-          <Card className="rounded-xl mb-6 border-brand-200 shadow-sm">
-            <CardContent className="p-4 sm:p-6">
-              <form onSubmit={handleSearch} className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="상품명을 입력하세요"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-10 sm:h-12 text-base border-brand-200 focus:border-brand-500"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="flex-1 sm:flex-initial bg-brand-500 hover:bg-brand-600 h-10 sm:h-12 px-6 sm:px-8"
-                    >
-                      {loading ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Search className="mr-2 h-4 w-4" />
-                      )}
-                      <span className="hidden sm:inline">검색</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowFilters(!showFilters)}
-                      className="h-10 sm:h-12 px-3 sm:px-4 border-brand-200"
-                    >
-                      <Settings className="h-4 w-4" />
-                      <span className="hidden sm:inline ml-2">필터</span>
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <MapPin className="h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">위치: {selectedLocation}</span>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-
-          {/* 검색 전 안내 메시지 */}
-          {!hasSearched && !queryFromUrl && (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-4">🔍</div>
-              <h3 className="text-xl font-semibold mb-2">검색어를 입력하고 엔터를 눌러주세요</h3>
-              <p className="text-gray-600">당근마켓, 번개장터, 중고나라에서 상품을 찾아드립니다</p>
-            </div>
-          )}
-
-          {/* 비교 버튼 */}
-          {selectedIds.length >= 2 && (
-            <div className="mb-4">
-              <Button onClick={goCompare} className="bg-red-500 hover:bg-red-600 rounded-xl">
-                <ArrowUpDown className="w-4 h-4 mr-2" />
-                상품 비교하기 ({selectedIds.length}개)
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex gap-6 items-center">
+              <Button
+                variant="ghost"
+                className="text-gray-600 hover:text-brand-500"
+                onClick={() => router.push("/search?q=" + encodeURIComponent(queryFromUrl))}
+              >
+                검색
               </Button>
+              <Button
+                variant="ghost"
+                className="text-gray-600 hover:text-brand-500"
+                onClick={() => router.push("/compare")}
+              >
+                비교
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-gray-600 hover:text-brand-500"
+                onClick={() => router.push("/help")}
+              >
+                도움말
+              </Button>
+              <ThemeToggle />
+            </nav>
+            {/* Mobile Menu Button & Theme Toggle */}
+            <div className="md:hidden flex items-center gap-2">
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+          {/* Mobile Navigation */}
+          {showMobileMenu && (
+            <div className="md:hidden mt-4 pb-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+              <nav className="flex flex-col space-y-2">
+                <Button
+                  variant="ghost"
+                  className="justify-start text-gray-600 dark:text-gray-300 hover:text-brand-500"
+                  onClick={() => router.push("/search?q=" + encodeURIComponent(queryFromUrl))}
+                >
+                  검색
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="justify-start text-gray-600 dark:text-gray-300 hover:text-brand-500"
+                  onClick={() => router.push("/compare")}
+                >
+                  비교
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="justify-start text-gray-600 dark:text-gray-300 hover:text-brand-500"
+                  onClick={() => router.push("/help")}
+                >
+                  도움말
+                </Button>
+              </nav>
             </div>
           )}
         </div>
-      </div>
-
+      </header>
       <div className="container mx-auto max-w-6xl px-4 py-6">
         {/* 검색이 실행된 경우에만 탭과 필터 표시 */}
         {hasSearched && (
@@ -544,70 +463,69 @@ export default function SearchPageContent() {
             </Card>
 
             {/* 필터 섹션 */}
-            {showFilters && (
-              <Card className="rounded-xl mb-6 border-brand-200">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-brand-500 text-lg sm:text-xl">🎛️ 세부 필터</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 sm:space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">검색 대상 플랫폼</label>
-                      <Select value={selectedSources.join(",")} onValueChange={handleSourcesChange}>
-                        <SelectTrigger className="h-10 sm:h-12">
-                          <SelectValue placeholder="플랫폼 선택" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="danggeun">🥕 당근마켓</SelectItem>
-                          <SelectItem value="bunjang">⚡ 번개장터</SelectItem>
-                          <SelectItem value="junggonara">💼 중고나라</SelectItem>
-                          <SelectItem value="danggeun,bunjang,junggonara">모든 플랫폼</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">정렬 기준</label>
-                      <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="h-10 sm:h-12">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="price_asc">💰 가격 낮은 순</SelectItem>
-                          <SelectItem value="price_desc">💎 가격 높은 순</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="sm:col-span-2 lg:col-span-1">
-                      <label className="text-sm font-medium mb-2 block">
-                        💵 가격 범위: {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
-                      </label>
-                      <div className="px-2">
-                        <Slider
-                          value={priceRange}
-                          onValueChange={setPriceRange}
-                          min={0}
-                          max={5000000}
-                          step={10000}
-                          className="mt-3"
-                        />
-                      </div>
-                    </div>
+            {/* const [showFilters] = useState(false); // Not used */}
+            <Card className="rounded-xl mb-6 border-brand-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-brand-500 text-lg sm:text-xl">🎛️ 세부 필터</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">검색 대상 플랫폼</label>
+                    <Select value={selectedSources.join(",")} onValueChange={handleSourcesChange}>
+                      <SelectTrigger className="h-10 sm:h-12">
+                        <SelectValue placeholder="플랫폼 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="danggeun">🥕 당근마켓</SelectItem>
+                        <SelectItem value="bunjang">⚡ 번개장터</SelectItem>
+                        <SelectItem value="junggonara">💼 중고나라</SelectItem>
+                        <SelectItem value="danggeun,bunjang,junggonara">모든 플랫폼</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-2 block">🔍 키워드 필터</label>
-                    <Input
-                      placeholder="+포함할키워드, -제외할키워드 (쉼표로 구분)"
-                      value={keywordFilter}
-                      onChange={(e) => setKeywordFilter(e.target.value)}
-                      className="h-10 sm:h-12"
-                    />
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      + 기호로 포함할 키워드, - 기호로 제외할 키워드를 지정하세요
-                    </p>
+                    <label className="text-sm font-medium mb-2 block">정렬 기준</label>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="h-10 sm:h-12">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="price_asc">💰 가격 낮은 순</SelectItem>
+                        <SelectItem value="price_desc">💎 가격 높은 순</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                  <div className="sm:col-span-2 lg:col-span-1">
+                    <label className="text-sm font-medium mb-2 block">
+                      💵 가격 범위: {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
+                    </label>
+                    <div className="px-2">
+                      <Slider
+                        value={priceRange}
+                        onValueChange={setPriceRange}
+                        min={0}
+                        max={5000000}
+                        step={10000}
+                        className="mt-3"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">🔍 키워드 필터</label>
+                  <Input
+                    placeholder="+포함할키워드, -제외할키워드 (쉼표로 구분)"
+                    value={keywordFilter}
+                    onChange={(e) => setKeywordFilter(e.target.value)}
+                    className="h-10 sm:h-12"
+                  />
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    + 기호로 포함할 키워드, - 기호로 제외할 키워드를 지정하세요
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </>
         )}
 
@@ -627,7 +545,7 @@ export default function SearchPageContent() {
             {sorted.length > 0 && (
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold">
-                  📦 `{searchQuery}` 검색 결과 ({sorted.length}개)
+                  📦 `{queryFromUrl}` 검색 결과 ({sorted.length}개)
                 </h2>
               </div>
             )}
@@ -792,7 +710,7 @@ export default function SearchPageContent() {
                 <div className="text-4xl mb-4">🔍</div>
                 <h3 className="text-xl font-semibold mb-2">검색 결과가 없습니다</h3>
                 <p className="text-gray-600 mb-4">
-                  `{searchQuery}` 에 대한 검색 결과를 찾을 수 없습니다.
+                  `{queryFromUrl}` 에 대한 검색 결과를 찾을 수 없습니다.
                 </p>
                 <div className="text-sm text-gray-500">
                   <p>• 다른 키워드로 검색해보세요</p>

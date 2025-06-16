@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const selectedProducts = products.slice(0, maxProducts);
 
     // 🔥 최적화된 프롬프트 (단일 최고 상품 추천)
-    const prompt = `당신은 한국 중고거래 전문가입니다. 다음 검색어에 대한 상품들을 분석하고 최고의 상품을 추천해주세요.
+    const prompt = `당신은 한국 중고거래 전문가입니다. 다음 검색어에 대한 상품들을 분석하고 최고의 상품을 추천해주세요. 검색한 제품이 iPhone, MacBook 또는 PC와 같은 액세서리를 포함할 수 있는 경우, 검색 창에 명확하게 포함되어 있지 않는 한 키보드, 케이스, 충전기와 같은 액세서리는 추천하지 마세요.
 
 검색어: "${query}"
 
@@ -145,7 +145,7 @@ ${selectedProducts
     const data = await response.json();
     const responseText = data.choices[0]?.message?.content || "";
 
-    console.log(`🤖 Qwen3 8B 응답: ${responseText}`);
+    console.log(`🤖 meta llama 응답: ${responseText}`);
 
     // 🔥 JSON 파싱 (안전한 파싱)
     let recommendationData;
